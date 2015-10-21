@@ -423,6 +423,7 @@ class ODRUserControllerTest extends WebTestCase
          * then proceed to check to make sure that the content is correct.
          */
         self::$client->request('GET', 'http://odr.localhost/admin/user/togglepermission/56/3/1/view?_=1445028392762');
+        echo(self::$client->getResponse()->getContent());
         self::$client->request('GET', 'http://odr.localhost/logout');
 
         /**
@@ -433,9 +434,9 @@ class ODRUserControllerTest extends WebTestCase
         $form = $buttonCrawlerNode->form();
         $this->token = $form->get('_csrf_token')->getValue();
         self::$client->request('POST', '/login_check', array('_username' => 'dave1@gmail.com', '_password' => '@2Dave77', '_csrf_token' => $this->token));
-        self::$client->request('GET', 'http://odr.localhost/rruff');
+        self::$client->request('GET', 'http://odr.localhost/rruff_ref');
         $html = self::$client->getResponse()->getContent();
-//        echo("BLLLLLLLLLLLLLAAAAAAAAAAAAAAAAAAAAAAHHHHHHHHHH" . self::$client->getResponse()->getContent() . "BLLLLLLLLLLLLLLLLLLLLLLLAAAAAAAAAAAAAAAAAAAHHHHHHHHHH\n");
+        echo("BLLLLLLLLLLLLLAAAAAAAAAAAAAAAAAAAAAAHHHHHHHHHH" . self::$client->getResponse()->getContent() . "BLLLLLLLLLLLLLLLLLLLLLLLAAAAAAAAAAAAAAAAAAAHHHHHHHHHH\n");
         self::assertTrue(strpos($html,'RRUFF Reference') !== false);
         self::$client->request('GET', 'http://odr.localhost/logout');
 
@@ -488,6 +489,7 @@ class ODRUserControllerTest extends WebTestCase
         $this->token = $form->get('_csrf_token')->getValue();
         self::$client->request('POST', '/login_check', array('_username' => 'dave1@gmail.com', '_password' => '@2Dave77', '_csrf_token' => $this->token));
         self::$client->request('GET', 'http://odr.localhost/admin/type/list/records');
+//        echo(self::$client->getResponse()->getContent());
         $html = json_decode(self::$client->getResponse()->getContent())->{"d"}->{"html"};
         self::assertTrue(strpos($html, 'TestDataType') !== false);
 
@@ -498,7 +500,7 @@ class ODRUserControllerTest extends WebTestCase
         $this->token = $form->get('_csrf_token')->getValue();
         self::$client->request('POST', '/login_check', array('_username' => 'sam@stoneumbrella.com', '_password' => '$4samS7&', '_csrf_token' => $this->token));
         self::$client->request('GET', 'http://odr.localhost/admin/user/togglequickpermission/0179/0/view?_=1445286768724');
-        echo(self::$client->getResponse()->getContent());
+//        echo(self::$client->getResponse()->getContent());
         self::$client->request('GET', 'http://odr.localhost/logout');
         $crawler = self::$client->request('GET', 'http://odr.localhost/login');
         $buttonCrawlerNode = $crawler->selectButton('_submit');
@@ -531,7 +533,7 @@ class ODRUserControllerTest extends WebTestCase
         $buttonCrawlerNode = $crawler->selectButton('_submit');
         $form = $buttonCrawlerNode->form();
         $this->token = $form->get('_csrf_token')->getValue();
-        self::$client->request('POST', '/login_check', array('_username' => 'dave1@gmail.com', '_password' => '@2Dave77', '_csrf_token' => $this->token));
+        $crawler = self::$client->request('POST', '/login_check', array('_username' => 'dave1@gmail.com', '_password' => '@2Dave77', '_csrf_token' => $this->token));
 //        echo(self::$client->getResponse()->getContent());
         $this->assertTrue($crawler->filter('html:contains("disabled")')->count() > 0);
         self::$client->request('GET', 'http://odr.localhost/logout');
@@ -553,8 +555,8 @@ class ODRUserControllerTest extends WebTestCase
         $buttonCrawlerNode = $crawler->selectButton('_submit');
         $form = $buttonCrawlerNode->form();
         $this->token = $form->get('_csrf_token')->getValue();
-        self::$client->request('POST', '/login_check', array('_username' => 'dave1@gmail.com', '_password' => '@2Dave77', '_csrf_token' => $this->token));
-        echo(self::$client->getResponse()->getContent());
+        $crawler = self::$client->request('POST', '/login_check', array('_username' => 'dave1@gmail.com', '_password' => '@2Dave77', '_csrf_token' => $this->token));
+//        echo(self::$client->getResponse()->getContent());
         $this->assertTrue($crawler->filter('html:contains("Logout")')->count() > 0);
         self::$client->request('GET', 'http://odr.localhost/logout');
 
