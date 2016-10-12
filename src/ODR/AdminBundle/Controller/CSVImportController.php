@@ -412,6 +412,8 @@ class CSVImportController extends ODRCustomController
             $line_num = 1;
             $encoding_errors = array();
 
+$error_lines_printed = 0;
+print '<pre>';
             foreach ($reader as $row) {
                 // Keep track of the line number so UTF-8 errors can be accurately listed
                 $line_num++;
@@ -420,14 +422,28 @@ class CSVImportController extends ODRCustomController
                 if ( count($row) > 0 ) {
                     foreach ($row as $col_name => $col_data) {
                         // Check each piece of data for encoding errors
-                        if ( mb_check_encoding($col_data, "utf-8") == false )       // this check needs to be performed prior to a json_encode
+                        if ( mb_check_encoding($col_data, "utf-8") == false ) {       // this check needs to be performed prior to a json_encode
                             $encoding_errors[$line_num][] = $col_name;
+
+                            print 'Line: '.$line_num."\n";
+                            print $col_data."\n";
+//                            if ($error_lines_printed < 10) {
+                                $offset = 0;
+                                while ($offset >= 0)
+                                    print $offset.': '.self::ordutf8($col_data, $offset)."\n";
+
+                                $error_lines_printed++;
+//                            }
+//                            print mb_convert_encoding($col_data, 'utf-8', 'windows-1252');
+//                            print iconv("Windows-1252", "UTF-8//IGNORE", $col_data);
+                            print "\n\n";
+                        }
                     }
                 }
             }
-
+print '</pre>';
 //print_r($encoding_errors);
-//exit();
+exit();
 
             // ----------------------------------------
             // Grab column names from first row
@@ -504,6 +520,54 @@ class CSVImportController extends ODRCustomController
         return $response;
     }
 
+
+    function ordutf8($string, &$offset) {
+        $code = ord(substr($string, $offset,1));
+        $code_org = $code;
+        $bytesnumber = 0;
+
+        if ($code >= 128) {         //otherwise 0xxxxxxx
+
+            if ( ($code & 0xf0) == 0xf0 )   // 11110xxx
+                $bytesnumber = 4;
+            else if ( ($code & 0xe0) == 0xe0 )  // 1110xxxx
+                $bytesnumber = 3;
+            else if ( ($code & 0xc0) == 0xc0 )  // 110xxxxx
+                $bytesnumber = 2;
+            else
+                $bytesnumber = -1;
+/*
+            if ($code < 224)
+                $bytesnumber = 2;   //110xxxxx
+            else if ($code < 240)
+                $bytesnumber = 3;   //1110xxxx
+            else if ($code < 248)
+                $bytesnumber = 4;   //11110xxx
+*/
+            if ($bytesnumber > -1) {
+                $codetemp = $code - 192 - ($bytesnumber > 2 ? 32 : 0) - ($bytesnumber > 3 ? 16 : 0);
+                for ($i = 2; $i <= $bytesnumber; $i++) {
+                    $offset++;
+//                    $code2 = ord(substr($string, $offset, 1)) - 128;        //10xxxxxx
+                    $code2 = ord(substr($string, $offset, 1));
+                    if ( ($code2 & 0x80) !== 0x80 ) {
+                        $bytesnumber = -1;
+                        break;
+                    }
+                    $codetemp = $codetemp * 64 + $code2;
+                }
+                $code = $codetemp;
+            }
+        }
+        $offset += 1;
+        if ($offset >= strlen($string))
+            $offset = -1;
+
+        if ($bytesnumber == -1)
+            return 'Invalid utf-8 character 0x'.dechex($code_org);
+        else
+            return dechex($code);
+    }
 
     /**
      * Because Excel apparently can't always manage to keep itself from exporting completely blank 
