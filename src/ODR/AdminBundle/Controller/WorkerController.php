@@ -1269,6 +1269,8 @@ $ret .= '  Set current to '.$count."\n";
         $return['d'] = "";
 
         try {
+            throw new \Exception('DO NOT CONTINUE');
+
             // Grab necessary objects
             /** @var \Doctrine\ORM\EntityManager $em */
             $em = $this->getDoctrine()->getManager();

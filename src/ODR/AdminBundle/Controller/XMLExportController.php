@@ -14,12 +14,12 @@
 
 namespace ODR\AdminBundle\Controller;
 
-use ODR\OpenRepository\UserBundle\Entity\User;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 
 // Entities
 use ODR\AdminBundle\Entity\DataRecord;
 use ODR\AdminBundle\Entity\Theme;
+use ODR\OpenRepository\UserBundle\Entity\User;
 // Forms
 // Symfony
 use Symfony\Component\HttpFoundation\Request;
