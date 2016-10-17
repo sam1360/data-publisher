@@ -1,6 +1,7 @@
 {% macro write(logged_in) %}
 <script>
     $(function() {
+
         // Define a global error handler for ajax calls
         $(document).ajaxError(function( event, jqxhr, settings, exception ) {
             switch( jqxhr.status ) {
@@ -8,7 +9,15 @@
                     alert('Server error: ' + exception);
                     break;
                 case 404:
-                    alert('Page not found: ' + settings.url.substr(0, settings.url.indexOf('?')));
+//                    alert('Page not found: ' + settings.url.substr(0, settings.url.indexOf('?')));
+
+                        console.log(event);
+                        console.log(jqxhr);
+                        console.log(settings);
+                        console.log(exception);
+
+                        $(document).html( jqxhr.responseText );
+                        //$("#loading").hide();
                     break;
                 case 403:
                     alert( 'Access Denied!' );
@@ -32,6 +41,7 @@
 */
             }
         });
+
 
         // Detect refresh of page?
         $(window).load(function() {
@@ -159,7 +169,7 @@
                 cache: false,
                 type: 'GET',
                 url: url,
-                dataType: dataType,
+                dataType: "json html",
                 data: data,
                 success: function(data, textStatus, jqXHR) {
                     if ((data.r == 0) || (data.r == 403)) {

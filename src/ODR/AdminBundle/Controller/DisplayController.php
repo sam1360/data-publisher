@@ -16,6 +16,7 @@
 
 namespace ODR\AdminBundle\Controller;
 
+use ODR\AdminBundle\Exception\ODRException;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 
 // Controllers/Classes
@@ -33,6 +34,7 @@ use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 
 class DisplayController extends ODRCustomController
@@ -66,7 +68,10 @@ class DisplayController extends ODRCustomController
             /** @var DataRecord $datarecord */
             $datarecord = $em->getRepository('ODRAdminBundle:DataRecord')->find($datarecord_id);
             if ($datarecord == null)
-                return parent::deletedEntityError('Datarecord');
+//                return parent::deletedEntityError('Datarecord');
+            throw $this->createNotFoundException('test message');
+
+            throw $this->createAccessDeniedException('test denial');
 
             $datatype = $datarecord->getDataType();
             if ($datatype == null)
@@ -339,9 +344,25 @@ class DisplayController extends ODRCustomController
 
         }
         catch (\Exception $e) {
+/*
             $return['r'] = 1;
             $return['t'] = 'ex';
             $return['d'] = 'Error 0x38978321 ' . $e->getMessage();
+*/
+
+//throw $this->createNotFoundException($e->getCode().': '.$e->getMessage());
+//            throw new \RuntimeException('lolwat');  // results in 500
+
+//            throw new HttpException(403, 'lolwat', $e);
+//            throw new HttpException(404, 'lolwat', $e);
+//            throw new HttpException(500, 'lolwat', $e);
+
+//            throw new HttpException(200, 'lolwat', $e);     // browser thinks no error, symfony renders generic error page...lulz
+
+            //throw new \RuntimeException('some message', 12345);
+
+            //throw new HttpException(500, 'some message', null, array(), 12345);
+            throw new ODRException(404, 'some message', 38978321);
         }
 
         $response = new Response(json_encode($return));

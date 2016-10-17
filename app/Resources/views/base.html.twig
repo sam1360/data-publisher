@@ -8,16 +8,15 @@
 <!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
 <head>
     <meta charset="utf-8">
-
     <!-- <link rel="dns-prefetch" href="http://cdnjs.cloudflare.com" />
     <link rel="dns-prefetch" href="http://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="http://themes.googleusercontent.com" />
     <link rel="dns-prefetch" href="http://ajax.googleapis.com" />
     <link rel="dns-prefetch" href="http://agorbatchev.typepad.com" /> -->
-    
+
     <!-- Use the .htaccess and remove these lines to avoid edge case issues.  More info: h5bp.com/b/378 -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    
+
     <title>{% block title %}Welcome!{% endblock %}</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}" />
 
@@ -28,12 +27,12 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <!-- iPhone: Don't render numbers as call links -->
     <meta name="format-detection" content="telephone=no">
-    
+
     <link rel="shortcut icon" href="favicon.ico" />
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory: mathiasbynens.be/notes/touch-icons -->
     <!-- More ideas for your <head> here: h5bp.com/d/head-Tips -->
-    
-    
+
+
     <!-- Pure Layout -->
     <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.5.0/pure-min.css">
     <!--[if lte IE 8]><link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.5.0/grids-responsive-old-ie-min.css"><![endif]-->
@@ -42,7 +41,7 @@
     <!-- Icon Styles -->
     <link rel="stylesheet" href="/css/fonts/font-awesome.css">
     <!--[if IE 8]><link rel="stylesheet" href="/css/fonts/font-awesome-ie7.css"><![endif]-->
-    
+
     <!-- External Styles -->
     <link rel="stylesheet" href="/css/external/jquery-ui-1.8.21.custom.css">
     <link rel="stylesheet" href="/css/external/jquery.jgrowl.css">
@@ -63,15 +62,13 @@
 
     <!-- Scripts -->
     <script defer async src="https://ajax.googleapis.com/ajax/libs/webfont/1.0.28/webfont.js"></script>
-    
+
     <!-- Essential polyfills -->
     <script src="/js/mylibs/polyfills/modernizr-2.6.1.min.js"></script>
     <!--[if lt IE 9]><script src="/js/mylibs/polyfills/selectivizr.js"></script><![endif]-->
     <!--[if lt IE 10]><script src="/js/mylibs/polyfills/excanvas.js"></script><![endif]-->
     <!--[if lt IE 10]><script src="/js/mylibs/polyfills/classlist.js"></script><![endif]-->
-    
-    
-    
+
     <!-- Grab frameworks from CDNs -->
     <!-- Grab Google CDN's jQuery, with a protocol relative URL; fall back to local if offline -->
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.js"></script>
@@ -80,7 +77,7 @@
     <!-- Do the same with jQuery UI -->
     <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.21/jquery-ui.js"></script>
     <script>window.jQuery.ui || document.write('<script src="/js/libs/jquery-ui-1.8.21.js"><\/script>')</script>
-    
+
     <!-- Do the same with Lo-Dash.js -->
     <!--[if gt IE 8]>
         <script src="http://cdnjs.cloudflare.com/ajax/libs/lodash.js/0.4.2/lodash.js"></script>
@@ -88,8 +85,8 @@
     <![endif]-->
     <!-- IE8 doesn't like lodash -->
     <!--[if lt IE 9]><script src="http://documentcloud.github.com/underscore/underscore.js"></script><![endif]-->
-    
-    
+
+
     <!-- Load Webfont loader -->
     <script type="text/javascript">
         $(function() {
@@ -101,7 +98,7 @@
     </script>
     
     <!-- scripts concatenated and minified via build script -->
-    
+
     <!-- General Scripts -->
     <script src="/js/mylibs/jquery.hashchange.js"></script>
     <script src="/js/mylibs/jquery.idle-timer.js"></script>
@@ -111,10 +108,10 @@
     <script src="/js/mylibs/jquery.ui.touch-punch.js"></script>
     <script src="/js/mylibs/jquery.ui.multiaccordion.js"></script>
     <script src="/js/mylibs/number-functions.js"></script>
-    
+
     <!-- Forms -->
     <script src="/js/libs/plugins/jquery.validate.min.js"></script>
-        
+
     <!-- Charts -->
     <script src="/js/mylibs/nvd3/d3.v3.min.js"></script>
     <script src="/js/mylibs/nvd3/nv.d3.js"></script>
@@ -123,7 +120,7 @@
     <script src="/js/mylibs/fullstats/jquery.css-transform.js"></script>
     <script src="/js/mylibs/fullstats/jquery.animate-css-rotate-scale.js"></script>
     <script src="/js/mylibs/fullstats/jquery.sparkline.js"></script>
-    
+
     <!-- Dynamic Tables -->
     <!-- <script src="/js/mylibs/dynamic-tables/jquery.dataTables.js"></script>
     <script src="/js/mylibs/dynamic-tables/jquery.dataTables.tableTools.zeroClipboard.js"></script>
@@ -149,7 +146,6 @@
     <script src="/js/app.js"></script>
 
     <!-- end scripts -->
-    
 </head>
 
 <body class="pure-skin-odr">
@@ -163,39 +159,34 @@
     <!-- The toolbar at the top -->
     <section id="toolbar" class="pure-form pure-g">
 
+        <!-- The container of the sidebar and content box -->
         <div class="pure-u-1 pure-u-md-23-24">
             <span class="ODRMenuLeft pure-menu pure-menu-open pure-menu-horizontal">
                 <ul>
-    {% if use_navigation_block == true %}
-        <!-- The container of the sidebar and content box -->
-        <!-- The sidebar -->
-        <li tabindex="0" id="ODRNavWrapper"><i title="menu" class="fa fa-bars Pointer" onclick="jQuery('#ODRNav').toggle()"></i>
-            <div id="ODRNav">
-                <div id="ODRMenuLabel">tap an option or the <i class="fa fa-bars"></i>&nbsp; icon to close</div>
-                <div class="top">
-                    <!-- Navigation -->
-                    {% block navigation_top %}
-                    {% endblock %}
-                </div><!-- End of .top -->
-{#
-                {% block navigation_bottom %}
-                {% endblock %}
-#}
-            </div>
-        
-        </li><!-- End of sidebar -->
-    {% endif %}
-                {% if header_left_title != '' %}
-                    <li><a class="pure-button" href="{{ header_left_path }}">{{ header_left_title }}</a></li>
-                {% endif %}
-                {% if header_middle_title != '' %}
-                    <li><a class="pure-button" href="{{ header_middle_path }}">{{ header_middle_title }}</a></li>
-                {% endif %}
+                    {% if use_navigation_block == true %}
+                        <!-- The sidebar -->
+                        <li tabindex="0" id="ODRNavWrapper"><i title="menu" class="fa fa-bars Pointer" onclick="jQuery('#ODRNav').toggle()"></i>
+                            <div id="ODRNav">
+                                <div id="ODRMenuLabel">tap an option or the <i class="fa fa-bars"></i>&nbsp; icon to close</div>
+                                <div class="top">
+                                    <!-- Navigation -->
+                                    {% block navigation_top %}{% endblock %}
+                                </div><!-- End of .top -->
+                            </div>
+                        </li><!-- End of sidebar -->
+                    {% endif %}
+
+                    {% if header_left_title != '' %}
+                        <li><a class="pure-button" href="{{ header_left_path }}">{{ header_left_title }}</a></li>
+                    {% endif %}
+                    {% if header_middle_title != '' %}
+                        <li><a class="pure-button" href="{{ header_middle_path }}">{{ header_middle_title }}</a></li>
+                    {% endif %}
                 </ul>
             </span>
             <span class="ODRMenuRight pure-menu pure-menu-open pure-menu-horizontal">
                 <ul>
-                {% if current_user != '' %}
+                {% if current_user is defined and current_user != '' %}
                     <li>{{ current_user }}&nbsp;&nbsp;&nbsp;</li>
                 {% endif %}
                 {% if header_right_title != '' %}
@@ -205,9 +196,9 @@
             </span>
         </div>
     </section><!-- End of #toolbar -->
-    
+
     <header></header>
-    
+
     {% if use_navigation_block == true %}
         <!-- The container of the sidebar and content box -->
         <!-- The Properties sidebar -->
@@ -227,10 +218,10 @@
         <section id="content" class="pure-u-1 pure-u-md-22-24" data-sort=true style="margin-top: 10px;">
         {% block body %}{% endblock %}
         </section><!-- End of #content -->
-        
+
         <section id="right-spacer" class="pure-u-md-1-24"></section>
     </div><!-- End of #main -->
-    
+
     <!-- The footer -->
     <footer class="pure-u-1">
         <span class="ODRMenuRight pure-menu pure-menu-open pure-menu-horizontal">
@@ -242,13 +233,13 @@
             </ul>
         </span>
     </footer> <!-- End of footer -->
-    
+
     <!-- Spawn $$.loaded -->
     <script>
         $("#loading-overlay").hide();
         $("#loading").hide();
     </script>
-    
+
     <!-- Prompt IE 6 users to install Chrome Frame. Remove this if you want to support IE 6.
        chromium.org/developers/how-tos/chrome-frame-getting-started -->
     <!--[if lt IE 7 ]>

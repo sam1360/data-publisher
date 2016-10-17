@@ -2140,6 +2140,12 @@ if ($debug)
      */
     protected function deletedEntityError($entity = '')
     {
+        throw $this->createNotFoundException('test message');
+
+        $response = new Response();
+        $response->setStatusCode(404);
+        return $response;
+
         $str = '';
         if ($entity !== '')
             $str = "<h2>This ".$entity." has been deleted!</h2>";
