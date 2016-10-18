@@ -16,10 +16,11 @@
                         console.log(settings);
                         console.log(exception);
 
-                        $(document).html( jqxhr.responseText );
+//                        $(document).html( jqxhr.responseText );
                         //$("#loading").hide();
                     break;
                 case 403:
+/*
                     alert( 'Access Denied!' );
                     // If a hash is present, attempt to preserve it so user goes back to this page after login
                     var url = window.location.href;
@@ -33,6 +34,7 @@
                         // Otherwise, just redirect to admin page
                         location.replace("{{ path('odr_admin_homepage') }}");
                     }
+*/
                     break;
 /*
                 default:
