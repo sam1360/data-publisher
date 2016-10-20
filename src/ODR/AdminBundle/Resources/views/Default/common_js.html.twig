@@ -4,19 +4,33 @@
 
         // Define a global error handler for ajax calls
         $(document).ajaxError(function( event, jqxhr, settings, exception ) {
+            switch ( jqxhr.status ) {
+                case 401:
+                case 403:
+                case 404:
+                case 500:
+                    $("#content").html( jqxhr.responseText );
+                    $("#content").fadeTo(1000, 1.0);
+                    break;
+            }
+{#
             switch( jqxhr.status ) {
                 case 500:
-                    alert('Server error: ' + exception);
-                    break;
+//                    alert('Server error: ' + exception);
+//                    break;
                 case 404:
 //                    alert('Page not found: ' + settings.url.substr(0, settings.url.indexOf('?')));
-
+/*
                         console.log(event);
                         console.log(jqxhr);
                         console.log(settings);
                         console.log(exception);
+*/
+                    $("#content").html( jqxhr.responseText );
+                    $("#content").fadeTo(1000, 1.0);
 
 //                        $(document).html( jqxhr.responseText );
+
                         //$("#loading").hide();
                     break;
                 case 403:
@@ -42,6 +56,7 @@
                     break;
 */
             }
+#}
         });
 
 
@@ -117,8 +132,7 @@
             });
         });
 
-        $("a.address").off("click");
-        $("a.address").on("click", function(event) {
+        $("a.address").off("click").on("click", function(event) {
             // Needed?
             event.preventDefault();
 
@@ -166,12 +180,11 @@
                 data = {'odr_tab_id': window.sessionStorage.getItem('odr_tab_id')};
 
             // Load to Content area
-            var dataType = "json";
             xhr = $.ajax({
                 cache: false,
                 type: 'GET',
                 url: url,
-                dataType: "json html",
+                dataType: "json",
                 data: data,
                 success: function(data, textStatus, jqXHR) {
                     if ((data.r == 0) || (data.r == 403)) {

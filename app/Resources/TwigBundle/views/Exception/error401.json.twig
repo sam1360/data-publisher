@@ -1,0 +1,17 @@
+{% spaceless %}
+
+        <h1>Test 401 json error</h1>
+
+        {% if is_granted('IS_AUTHENTICATED_FULLY') %}
+            <p>user is authenticated?</p>
+        {% endif %}
+
+    <p>error code: {{ exception.code }}</p>
+    <p>error message: {{ exception.message }}</p>
+
+        <p>
+            The requested page couldn't be located. Checkout for any URL
+            misspelling or <a href="{{ path('odr_admin_homepage') }}">return to the homepage</a>.
+        </p>
+
+{% endspaceless %}

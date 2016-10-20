@@ -26,8 +26,6 @@ class ODRExceptionController extends ExceptionController
 {
 
     /**
-     * Overrides the
-     *
      * @param Request $request
      * @param FlattenException $exception
      * @param DebugLoggerInterface|null $logger
@@ -41,30 +39,8 @@ class ODRExceptionController extends ExceptionController
 
         $code = $exception->getStatusCode();
 
-        if ( !$request->isXmlHttpRequest() ) {
-            // If a conventional GET request, return a full error page
-            return new Response(
-                $this->twig->render(
-                    (string)$this->findTemplate($request, $request->getRequestFormat(), $code, $showException),
-                    array(
-                        'status_code' => $code,
-                        'status_text' => isset(Response::$statusTexts[$code]) ? Response::$statusTexts[$code] : '',
-                        'exception' => $exception,
-                        'logger' => $logger,
-                        'currentContent' => $currentContent,
-                    )
-                )
-            );
-        }
-        else {
-            // Otherwise...
-            $return = array(
-                'r' => 0,
-                't' => '',
-                'd' => '',
-            );
-
-            $return['error'] = $this->twig->render(
+        $response = new Response(
+            $this->twig->render(
                 (string)$this->findTemplate($request, $request->getRequestFormat(), $code, $showException),
                 array(
                     'status_code' => $code,
@@ -72,13 +48,52 @@ class ODRExceptionController extends ExceptionController
                     'exception' => $exception,
                     'logger' => $logger,
                     'currentContent' => $currentContent,
-                    'is_xml_http_request' => true,
                 )
-            );
+            )
+        );
+        $response->setStatusCode($code);
 
-            $response = new Response(json_encode($return));
+        if ( $request->isXmlHttpRequest() ) {
             $response->headers->set('Content-Type', 'application/json');
-            return $response;
         }
+
+        return $response;
+    }
+
+
+    /**
+     * @inheritdoc
+     */
+    public function findTemplate(Request $request, $format, $code, $showException)
+    {
+        $name = $showException ? 'exception' : 'error';
+        if ($showException && 'html' == $format) {
+            $name = 'exception_full';
+        }
+
+        // TODO - need to decide on a more final format for the names of the twig files...
+        if ( $request->isXmlHttpRequest() ) {
+            $name = 'error';
+            $format = 'json';
+        }
+
+        // For error pages, try to find a template for the specific HTTP status code and format
+        if ($name == 'error') {
+            $template = sprintf('@Twig/Exception/%s%s.%s.twig', $name, $code, $format);
+            if ($this->templateExists($template)) {
+                return $template;
+            }
+        }
+
+        // try to find a template for the given format
+        $template = sprintf('@Twig/Exception/%s.%s.twig', $name, $format);
+        if ($this->templateExists($template)) {
+            return $template;
+        }
+
+        // default to a generic HTML exception
+        $request->setRequestFormat('html');
+
+        return sprintf('@Twig/Exception/%s.html.twig', $showException ? 'exception_full' : $name);
     }
 }

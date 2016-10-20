@@ -16,7 +16,6 @@
 
 namespace ODR\AdminBundle\Controller;
 
-use ODR\AdminBundle\Exception\ODRException;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 
 // Controllers/Classes
@@ -28,13 +27,17 @@ use ODR\AdminBundle\Entity\Image;
 use ODR\AdminBundle\Entity\File;
 use ODR\AdminBundle\Entity\Theme;
 use ODR\OpenRepository\UserBundle\Entity\User;
+// Exceptions
+use ODR\AdminBundle\Exception\ODRAuthenticationRequiredException;
+use ODR\AdminBundle\Exception\ODRDeletedEntityException;
+use ODR\AdminBundle\Exception\ODRException;
+use ODR\AdminBundle\Exception\ODRPermissionDeniedException;
 // Forms
 // Symfony
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 
 class DisplayController extends ODRCustomController
@@ -46,7 +49,8 @@ class DisplayController extends ODRCustomController
      * @param string $search_key     Used for search header, an optional string describing which search result list $datarecord_id is a part of
      * @param integer $offset        Used for search header, an optional integer indicating which page of the search result list $datarecord_id is on
      * @param Request $request
-     * 
+     *
+     * @throws ODRException
      * @return Response
      */
     public function viewAction($datarecord_id, $search_key, $offset, Request $request) 
@@ -55,6 +59,8 @@ class DisplayController extends ODRCustomController
         $return['r'] = 0;
         $return['t'] = '';
         $return['d'] = '';
+
+        $exception_source = 399208;
 
         try {
             // Load required objects
@@ -68,19 +74,16 @@ class DisplayController extends ODRCustomController
             /** @var DataRecord $datarecord */
             $datarecord = $em->getRepository('ODRAdminBundle:DataRecord')->find($datarecord_id);
             if ($datarecord == null)
-//                return parent::deletedEntityError('Datarecord');
-            throw $this->createNotFoundException('test message');
-
-            throw $this->createAccessDeniedException('test denial');
+                throw new ODRDeletedEntityException("Datarecord");
 
             $datatype = $datarecord->getDataType();
             if ($datatype == null)
-                return parent::deletedEntityError('Datatype');
+                throw new ODRDeletedEntityException("Datatype");
 
             /** @var Theme $theme */
             $theme = $em->getRepository('ODRAdminBundle:Theme')->findOneBy( array('dataType' => $datatype->getId(), 'themeType' => 'master') );
             if ($theme == null)
-                return parent::deletedEntityError('Theme');
+                throw new ODRDeletedEntityException("Theme");
 
             // Save incase the user originally requested a child datarecord
             $original_datarecord = $datarecord;
@@ -93,15 +96,17 @@ class DisplayController extends ODRCustomController
             if ( $datarecord->getId() !== $datarecord->getGrandparent()->getId() ) {
                 $is_top_level = 0;
                 $datarecord = $datarecord->getGrandparent();
+                if ($datarecord->getDeletedAt() != null)
+                    throw new ODRDeletedEntityException("Grandparent Datarecord");
 
                 $datatype = $datarecord->getDataType();
-                if ($datatype == null)
-                    return parent::deletedEntityError('Datatype');
+                if ($datatype->getDeletedAt() != null)
+                    throw new ODRDeletedEntityException("Grandparent Datatype");
 
                 /** @var Theme $theme */
                 $theme = $em->getRepository('ODRAdminBundle:Theme')->findOneBy( array('dataType' => $datatype->getId(), 'themeType' => 'master') );
                 if ($theme == null)
-                    return parent::deletedEntityError('Theme');
+                    throw new ODRDeletedEntityException("Grandparent Theme");
             }
 
 
@@ -120,7 +125,7 @@ class DisplayController extends ODRCustomController
                 }
                 else {
                     // ...if either the datatype is non-public or the datarecord is non-public, return false
-                    return parent::permissionDeniedError('view');
+                    throw new ODRAuthenticationRequiredException("...something goes here...");
                 }
             }
             else {
@@ -140,7 +145,7 @@ class DisplayController extends ODRCustomController
 
                 // If either the datatype or the datarecord is not public, and the user doesn't have the correct permissions...then don't allow them to view the datarecord
                 if ( !($original_datatype->isPublic() || $can_view_datatype) || !($datarecord->isPublic() || $can_view_datarecord) )
-                    return parent::permissionDeniedError('view');
+                    throw new ODRPermissionDeniedException("not allowed to view this datarecord...");
             }
             // ----------------------------------------
 
@@ -343,26 +348,13 @@ class DisplayController extends ODRCustomController
             );
 
         }
+        catch (ODRException $e) {
+            // Attach an integer to identify the source of the exception and rethrow so Symfony can catch it
+            throw new ODRException($e->getMessage(), $e->getStatusCode(), $exception_source);
+        }
         catch (\Exception $e) {
-/*
-            $return['r'] = 1;
-            $return['t'] = 'ex';
-            $return['d'] = 'Error 0x38978321 ' . $e->getMessage();
-*/
-
-//throw $this->createNotFoundException($e->getCode().': '.$e->getMessage());
-//            throw new \RuntimeException('lolwat');  // results in 500
-
-//            throw new HttpException(403, 'lolwat', $e);
-//            throw new HttpException(404, 'lolwat', $e);
-//            throw new HttpException(500, 'lolwat', $e);
-
-//            throw new HttpException(200, 'lolwat', $e);     // browser thinks no error, symfony renders generic error page...lulz
-
-            //throw new \RuntimeException('some message', 12345);
-
-            //throw new HttpException(500, 'some message', null, array(), 12345);
-            throw new ODRException(404, 'some message', 38978321);
+            // If this is an "unexpected" exception, wrap it in an ODRException and rethrow so Symfony can catch it
+            throw new ODRException($e->getMessage(), "500", $exception_source, $e);
         }
 
         $response = new Response(json_encode($return));
