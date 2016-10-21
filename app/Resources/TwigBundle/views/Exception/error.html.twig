@@ -1,51 +1,17 @@
 {% spaceless %}
 
-    {# app/Resources/TwigBundle/views/Exception/error404.html.twig #}
-    {% extends 'base.html.twig' %}
-
-    {#    {% if logged_in == false %}#}
-    {#{% set header_left_title = 'Search' %}#}
-    {#{% set header_left_path = path('odr_search', {'search_slug': search_slug} ) %}#}
-    {% set header_left_title = '' %}
-    {% set header_left_path = '' %}
-
-    {% set header_middle_title = '' %}
-    {% set header_middle_path = '' %}
-
-    {% set header_right_title = '' %}
-    {% set header_right_path = '' %}
-    {#
-    {% set header_right_title = 'Login' %}
-    {% set header_right_path = '' %}
-    {% set header_right_js = 'ODRLogin();' %}
-    #}
-    {#
-        {% else %}
-        {% set header_left_title = 'Dashboard' %}
-        {% set header_left_path = path('odr_admin_homepage') %}
-
-        {% set header_middle_title = 'Search' %}
-        {% set header_middle_path = path('odr_search', {'search_slug': search_slug} ) %}
-
-        {% set header_right_title = 'Logout' %}
-        {% set header_right_path = path('odr_logout') %}
-        {% set header_right_js = '' %}
-    {% endif %}
-    #}
-
-    {% set use_navigation_block = false %}
-    {#{% set use_navigation_block = true %}#}
+    {% extends '@Twig/Exception/error_base.html.twig' %}
 
     {% block body %}
         <h1>Test generic error</h1>
 
-        {% if is_granted('IS_AUTHENTICATED_FULLY') %}
-            <p>user is authenticated?</p>
-        {% endif %}
+        <p>
+            Exception source: {{ exception.code }}
+            Exception message: {{ exception.message }}
+        </p>
 
         <p>
-            The requested page couldn't be located. Checkout for any URL
-            misspelling or <a href="{{ path('odr_admin_homepage') }}">return to the homepage</a>.
+            Some generic error...
         </p>
     {% endblock %}
 

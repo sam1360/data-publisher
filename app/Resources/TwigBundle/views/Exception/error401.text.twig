@@ -1,0 +1,15 @@
+{% spaceless %}
+
+    <h1>Test 401 error</h1>
+
+    <p>
+        Exception source: {{ exception.code }}
+        Exception message: {{ exception.message }}
+    </p>
+
+    <p>
+        You do not have permission to access this page, but you can attempt to <a href="/login">login</a>.
+    </p>
+
+{% endspaceless %}
+

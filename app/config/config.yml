@@ -149,4 +149,4 @@ services:
 
     ODR.exception_controller:
         class: ODR\AdminBundle\Controller\ODRExceptionController
-        arguments: [ "@twig", "%kernel.debug%" ]
+        arguments: [ "@twig", "%kernel.debug%", "@security.token_storage" ]

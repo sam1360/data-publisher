@@ -9,8 +9,11 @@
                 case 403:
                 case 404:
                 case 500:
+{#
                     $("#content").html( jqxhr.responseText );
                     $("#content").fadeTo(1000, 1.0);
+#}
+                        $.jGrowl( jqxhr.responseText, {sticky: true} ) ;    {# position: center won't work with current ODR layout... #}
                     break;
             }
 {#

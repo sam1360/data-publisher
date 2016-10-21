@@ -15,22 +15,28 @@
 
 namespace ODR\AdminBundle\Controller;
 
+// Controllers
 use Symfony\Bundle\TwigBundle\Controller\ExceptionController;
+// Symfony
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\FlattenException;
 use Symfony\Component\HttpKernel\Log\DebugLoggerInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 
 class ODRExceptionController extends ExceptionController
 {
+    protected $token_storage;
+
+    public function __construct(\Twig_Environment $twig, $debug, TokenStorage $token_storage)
+    {
+        $this->token_storage = $token_storage;
+        parent::__construct($twig, $debug);
+    }
 
     /**
-     * @param Request $request
-     * @param FlattenException $exception
-     * @param DebugLoggerInterface|null $logger
-     *
-     * @return Response
+     * @inheritdoc
      */
     public function showAction(Request $request, FlattenException $exception, DebugLoggerInterface $logger = null)
     {
@@ -38,6 +44,15 @@ class ODRExceptionController extends ExceptionController
         $showException = $request->attributes->get('showException', $this->debug); // As opposed to an additional parameter, this maintains BC
 
         $code = $exception->getStatusCode();
+
+        $user = $this->token_storage->getToken()->getUser();    // <-- will return 'anon.' when nobody is logged in
+        $logged_in = true;
+        if ($user == 'anon.') {
+            $logged_in = false;
+
+            if ($code == 403)
+                $code = 401;
+        }
 
         $response = new Response(
             $this->twig->render(
@@ -48,6 +63,9 @@ class ODRExceptionController extends ExceptionController
                     'exception' => $exception,
                     'logger' => $logger,
                     'currentContent' => $currentContent,
+
+                    'user' => $user,
+                    'logged_in' => $logged_in,
                 )
             )
         );
@@ -74,7 +92,7 @@ class ODRExceptionController extends ExceptionController
         // TODO - need to decide on a more final format for the names of the twig files...
         if ( $request->isXmlHttpRequest() ) {
             $name = 'error';
-            $format = 'json';
+            $format = 'text';
         }
 
         // For error pages, try to find a template for the specific HTTP status code and format

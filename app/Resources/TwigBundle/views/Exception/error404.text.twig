@@ -1,0 +1,16 @@
+{% spaceless %}
+
+    <h1>Test 404 error</h1>
+
+    <p>
+        Exception source: {{ exception.code }}
+        Exception message: {{ exception.message }}
+    </p>
+
+    <p>
+        The requested page couldn't be located. Check for any URL
+        misspelling or <a href="{{ path('odr_admin_homepage') }}">return to the homepage</a>.
+    </p>
+
+{% endspaceless %}
+
