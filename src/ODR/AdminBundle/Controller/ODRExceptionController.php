@@ -45,14 +45,20 @@ class ODRExceptionController extends ExceptionController
 
         $code = $exception->getStatusCode();
 
-        $user = $this->token_storage->getToken()->getUser();    // <-- will return 'anon.' when nobody is logged in
-        $logged_in = true;
-        if ($user == 'anon.') {
-            $logged_in = false;
+        $user = 'anon.';
+        $token = $this->token_storage->getToken();
 
-            if ($code == 403)
-                $code = 401;
+        $logged_in = false;
+        if ($token !== null) {
+            $user = $token->getUser();    // <-- will return 'anon.' when nobody is logged in
+
+            if ($user != 'anon.')
+                $logged_in = true;
         }
+
+        if (!$logged_in && $code == 403)
+            $code = 401;
+
 
         $response = new Response(
             $this->twig->render(

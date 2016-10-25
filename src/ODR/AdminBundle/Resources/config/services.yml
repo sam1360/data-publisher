@@ -31,12 +31,12 @@ parameters:
             mimeTypesErrorMessage: Please upload a valid file.
 
 services:
-  odr.twig.plug_extension:
-      class: ODR\AdminBundle\Twig\PlugExtension
-      arguments: 
-          container: "@service_container"
-      tags:
-          - { name: twig.extension }
+    odr.twig.plug_extension:
+        class: ODR\AdminBundle\Twig\PlugExtension
+        arguments:
+            container: "@service_container"
+        tags:
+            - { name: twig.extension }
 
-  odr_search_controller:
-      class: ODR\OpenRepository\SearchBundle\Controller\DefaultController
+    odr_search_controller:
+        class: ODR\OpenRepository\SearchBundle\Controller\DefaultController

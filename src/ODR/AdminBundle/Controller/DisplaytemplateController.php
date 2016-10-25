@@ -42,6 +42,11 @@ use ODR\AdminBundle\Entity\ThemeElement;
 use ODR\AdminBundle\Entity\ThemeMeta;
 use ODR\AdminBundle\Entity\TrackedJob;
 use ODR\OpenRepository\UserBundle\Entity\User;
+// Exceptions
+use ODR\AdminBundle\Exception\ODRAuthenticationRequiredException;
+use ODR\AdminBundle\Exception\ODRDeletedEntityException;
+use ODR\AdminBundle\Exception\ODRException;
+use ODR\AdminBundle\Exception\ODRPermissionDeniedException;
 // Forms
 use ODR\AdminBundle\Form\UpdateDataFieldsForm;
 use ODR\AdminBundle\Form\UpdateDataTypeForm;
@@ -949,7 +954,8 @@ class DisplaytemplateController extends ODRCustomController
      * 
      * @param integer $datatype_id The database id of the DataType to be rendered.
      * @param Request $request
-     * 
+     *
+     * @throws ODRException
      * @return Response
      */
     public function designAction($datatype_id, Request $request)
@@ -959,6 +965,8 @@ class DisplaytemplateController extends ODRCustomController
         $return['t'] = '';
         $return['d'] = '';
 
+        $exception_source = 560031;
+
         try {
             // Grab necessary objects
             /** @var \Doctrine\ORM\EntityManager $em */
@@ -967,7 +975,7 @@ class DisplaytemplateController extends ODRCustomController
             /** @var DataType $datatype */
             $datatype = $em->getRepository('ODRAdminBundle:DataType')->find($datatype_id);
             if ( $datatype == null )
-                return parent::deletedEntityError('Datatype');
+                throw new ODRDeletedEntityException('Datatype');
 
             // --------------------
             // Determine user privileges
@@ -978,7 +986,7 @@ class DisplaytemplateController extends ODRCustomController
 
             // Ensure user has permissions to be doing this
             if ( !(isset($datatype_permissions[ $datatype->getId() ]) && isset($datatype_permissions[ $datatype->getId() ][ 'dt_admin' ])) )
-                return parent::permissionDeniedError("edit");
+                throw new ODRPermissionDeniedException('...something goes here...');
             // --------------------
 
             $return['d'] = array(
@@ -986,10 +994,13 @@ class DisplaytemplateController extends ODRCustomController
                 'html' => self::GetDisplayData($datatype_id, 'default', $datatype_id, $request),
             );
         }
+        catch (ODRException $e) {
+            // Attach an integer to identify the source of the exception and rethrow so Symfony can catch it
+            throw new ODRException($e->getMessage(), $e->getStatusCode(), $exception_source);
+        }
         catch (\Exception $e) {
-            $return['r'] = 1;
-            $return['t'] = 'ex';
-            $return['d'] = 'Error 0x38288399 ' . $e->getMessage();
+            // If this is an "unexpected" exception, wrap it in an ODRException and rethrow so Symfony can catch it
+            throw new ODRException($e->getMessage(), "500", $exception_source, $e);
         }
 
         $response = new Response(json_encode($return));
