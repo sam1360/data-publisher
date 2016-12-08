@@ -26,6 +26,7 @@ use ODR\OpenRepository\UserBundle\Entity\User;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 
 class DefaultController extends ODRCustomController
@@ -40,64 +41,38 @@ class DefaultController extends ODRCustomController
      */
     public function indexAction(Request $request)
     {
-        // Grab the current user
-        /** @var \Doctrine\ORM\EntityManager $em */
-        $em = $this->getDoctrine()->getManager();
-        /** @var User $user */
-        $user = $this->container->get('security.token_storage')->getToken()->getUser();
+        $html = '';
 
-        $datatype_permissions = array();
-        if ($user !== 'anon.') {
-            $user_permissions = parent::getUserPermissionsArray($em, $user->getId());
+        try {
+            // Grab the current user
+            /** @var \Doctrine\ORM\EntityManager $em */
+            $em = $this->getDoctrine()->getManager();
+            /** @var User $user */
+            $user = $this->container->get('security.token_storage')->getToken()->getUser();
+
+            $datatype_permissions = array();
+            if ($user !== 'anon.') {
+                $user_permissions = parent::getUserPermissionsArray($em, $user->getId());
 //            $user_permissions = parent::getUserPermissionsArray($em, $user->getId(), true);
-            $datatype_permissions = $user_permissions['datatypes'];
+                $datatype_permissions = $user_permissions['datatypes'];
+            }
+
+
+            // Render the base html for the page...$this->render() apparently creates a full Reponse object
+            $html = $this->renderView(
+                'ODRAdminBundle:Default:index.html.twig',
+                array(
+                    'user' => $user,
+                    'user_permissions' => $datatype_permissions,
+                )
+            );
         }
-
-
-        // Render the base html for the page...$this->render() apparently creates a full Reponse object
-        $html = $this->renderView(
-            'ODRAdminBundle:Default:index.html.twig',
-            array(
-                'user' => $user,
-                'user_permissions' => $datatype_permissions,
-            )
-        );
+        catch (\Exception $e) {
+            // This and ODROpenRepositorySearchBundle:Default:searchAction() are currently the only two controller actions that make Symfony handle the errors instead of AJAX popups
+            throw new HttpException( 500, 'Error 0x1436562', $e );
+        }
 
         $response = new Response($html);
-
-        // Set the search cookie if it doesn't exist        // TODO - The idea behind this is subpar, need something better...
-        $cookies = $request->cookies;
-        if ( !$cookies->has('prev_searched_datatype') ) {
-            // Figure out the first datatype the user can view that has a search slug...
-            $query = $em->createQuery(
-               'SELECT dt.id AS dt_id, dtm.publicDate AS public_date, dtm.searchSlug AS search_slug, gdtp.can_view_datatype AS can_view_datatype
-                FROM ODRAdminBundle:GroupDatatypePermissions AS gdtp
-                JOIN ODRAdminBundle:Group AS g WITH gdtp.group = g
-                JOIN ODRAdminBundle:DataType AS dt WITH g.dataType = dt
-                JOIN ODRAdminBundle:DataTypeMeta AS dtm WITH dtm.dataType = dt
-                JOIN ODRAdminBundle:UserGroup AS ug WITH ug.group = g
-                WHERE gdtp.can_view_datatype = 1 AND dtm.searchSlug IS NOT NULL AND ug.user = :user_id
-                AND gdtp.deletedAt IS NULL AND g.deletedAt IS NULL AND dt.deletedAt IS NULL AND dtm.deletedAt IS NULL
-                GROUP BY dt.id
-                ORDER BY dt.id'
-            )->setParameters( array('user_id' => $user->getId()) );
-            $results = $query->getArrayResult();
-
-//print '<pre>'.print_r($results, true).'</pre>';  exit();
-
-            foreach ($results as $result) {
-                $public_date = $result['public_date']->format('Y-m-d H:i:s');
-                $search_slug = $result['search_slug'];
-                $can_view_datatype = $result['can_view_datatype'];
-
-                // Locate first top-level datatype that either is public or viewable by the user logging in
-                if ( $public_date !== '2200-01-01 00:00:00' || $can_view_datatype == 1 ) {
-                    $response->headers->setCookie( new Cookie('prev_searched_datatype', $search_slug) );
-                    break;
-                }
-            }
-        }
-
         $response->headers->set('Content-Type', 'text/html');
         return $response;
     }

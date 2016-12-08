@@ -98,11 +98,6 @@ class DataFieldsMeta
     private $searchable;
 
     /**
-     * @var boolean
-     */
-    private $user_only_search;
-
-    /**
      * @var \DateTime
      */
     private $publicDate;
@@ -478,29 +473,6 @@ class DataFieldsMeta
     public function getSearchable()
     {
         return $this->searchable;
-    }
-
-    /**
-     * Set user_only_search
-     *
-     * @param boolean $userOnlySearch
-     * @return DataFieldsMeta
-     */
-    public function setUserOnlySearch($userOnlySearch)
-    {
-        $this->user_only_search = $userOnlySearch;
-
-        return $this;
-    }
-
-    /**
-     * Get user_only_search
-     *
-     * @return boolean 
-     */
-    public function getUserOnlySearch()
-    {
-        return $this->user_only_search;
     }
 
     /**

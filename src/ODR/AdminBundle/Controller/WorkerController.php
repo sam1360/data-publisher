@@ -57,7 +57,7 @@ class WorkerController extends ODRCustomController
 
         try {
 
-            throw new \Exception('DO NOT CONTINUE');
+            throw new \Exception('DO NOT CONTINUE [DEPRECATED]');
 
             $post = $_POST;
             if ( !isset($post['tracked_job_id']) || !isset($post['datarecord_id']) || !isset($post['api_key']) || !isset($post['scheduled_at']) )
@@ -682,7 +682,7 @@ $ret .= '  Set current to '.$count."\n";
 
 
     /**
-     * TODO
+     * Performs an asynchronous encrypt or decrypt on a specified file.  Also has the option
      *
      * @param Request $request
      *
@@ -695,159 +695,183 @@ $ret .= '  Set current to '.$count."\n";
         $return['t'] = "";
         $return['d'] = "";
 
+        $error_prefix = 'Error 0x65384782: ';
+        $handle = null;
+
         try {
             $post = $_POST;
 //print_r($post);
 //return;
-            if ( !isset($post['crypto_type']) || !isset($post['object_type']) || !isset($post['object_id']) || !isset($post['target_filepath']) || !isset($post['api_key']) )
+            if ( !isset($post['crypto_type']) || !isset($post['object_type']) || !isset($post['object_id']) || !isset($post['target_filename']) || !isset($post['api_key']) )
                 throw new \Exception('Invalid Form');
 
             // Pull data from the post
             $crypto_type = $post['crypto_type'];
             $object_type = strtolower( $post['object_type'] );
             $object_id = $post['object_id'];
-            $target_filepath = $post['target_filepath'];
+            $target_filename = $post['target_filename'];
             $api_key = $post['api_key'];
+
+            $error_prefix .= $crypto_type.' for '.$object_type.' '.$object_id.'...';
+
+            // These two are only used if the files are being decrypted into a zip archive
+            $archive_filepath = '';
+            if ( isset($post['archive_filepath']) )
+                $archive_filepath = $post['archive_filepath'];
+
+            $desired_filename = '';
+            if ( isset($post['desired_filename']) )
+                $desired_filename = $post['desired_filename'];
+
 
             // Grab necessary objects
             /** @var \Doctrine\ORM\EntityManager $em */
             $em = $this->getDoctrine()->getManager();
-            $crypto = $this->get("dterranova_crypto.crypto_adapter");
-            $crypto_dir = dirname(__FILE__).'/../../../../app/crypto_dir/';     // TODO - load from config file somehow?
 
             $beanstalk_api_key = $this->container->getParameter('beanstalk_api_key');
             if ($api_key !== $beanstalk_api_key)
                 throw new \Exception('Invalid Form');
 
             if ( !is_numeric($post['object_id']) )
-                throw new \Exception('Invalid Form');
+                throw new \Exception('$object_id is not numeric');
             else
                 $object_id = intval($object_id);
+
+            $base_obj = null;
+            if ($object_type == 'file')
+                $base_obj = $em->getRepository('ODRAdminBundle:File')->find($object_id);
+//            else if ($object_type == 'image')
+//                $base_obj = $em->getRepository('ODRAdminBundle:Image')->find($object_id);
+
+            // NOTE - encryption after image upload is currently done inline in ODRCustomController::finishUploadAction()
+            // Also, they're decrypted inline when needed...if they were done asynch, the browser couldn't display non-public versions in <img> tags
+
+
+            if ($base_obj == null)
+                throw new \Exception('could not load object '.$object_id.' of type "'.$object_type.'"');
+            /** @var File|Image $base_obj */
 
 
             // ----------------------------------------
             if ($crypto_type == 'encrypt') {
 
                 // ----------------------------------------
-                // Locate the directory with the encrypted file chunks
-                $base_obj = null;
-                if ($object_type == 'file') {
-                    $crypto_dir .= 'File_'.$object_id;
-                    $base_obj = $em->getRepository('ODRAdminBundle:File')->find($object_id);
-                }
-                /** @var File $base_obj */
-/*
-                else if ($object_type == 'image') {
-                    $crypto_dir .= 'Image_'.$object_id;
-                    $base_obj = $em->getRepository('ODRAdminBundle:Image')->find($object_id);
-                }
-*/
-                if ($base_obj == null)
-                    throw new \Exception('Invalid Form');
-
                 // Move file from completed directory to decrypted directory in preparation for encryption...
                 $destination_path = dirname(__FILE__).'/../../../../web';
                 $destination_filename = $base_obj->getUploadDir().'/File_'.$object_id.'.'.$base_obj->getExt();
                 rename( $base_obj->getLocalFileName(), $destination_path.'/'.$destination_filename );
 
-                // Update local filename in database...
+                // Update local filename and checksum in database...
                 $base_obj->setLocalFileName($destination_filename);
+
+                $original_checksum = md5_file($destination_path.'/'.$destination_filename);
+                $base_obj->setOriginalChecksum($original_checksum);
 
                 // Encryption of a given file/image is simple...
                 parent::encryptObject($object_id, $object_type);
 
-                // Calculate/store the checksum of the file to indicate the encryption process is complete
-                $filepath = parent::decryptObject($object_id, $object_type);
-                $original_checksum = md5_file($filepath);
-                $base_obj->setOriginalChecksum($original_checksum);
+                if ($object_type == 'file') {
+                    $base_obj->setProvisioned(false);
 
-                $em->persist($base_obj);
-                $em->flush();
-                $em->refresh($base_obj);
-
-                // Delete the decrypted version of the file/image off the server after it's completed
-                unlink($filepath);
-
+                    $em->persist($base_obj);
+                    $em->flush();
+                    $em->refresh($base_obj);
+                }
 
                 // Update the datarecord cache so whichever controller is handling the "are you done encrypting yet?" javascript requests can return the correct HTML
                 $datarecord = $base_obj->getDataRecord();
                 parent::tmp_updateDatarecordCache($em, $datarecord, $base_obj->getCreatedBy());
+            }
+            else if ($crypto_type == 'decrypt') {
+                // This is (currently) the only request the user has made for this file...begin manually decrypting it because the crypto bundle offers limited control over filenames
+                $crypto = $this->get("dterranova_crypto.crypto_adapter");
+                $crypto_dir = dirname(__FILE__).'/../../../../app/crypto_dir/';     // TODO - load from config file somehow?
+                $crypto_dir .= 'File_'.$object_id;
 
-                // TODO - run graph plugin on new file
+                $base_filepath = dirname(__FILE__).'/../../../../web/'.$base_obj->getUploadDir();
+                $local_filepath = $base_filepath.'/'.$target_filename;
+
+                // Don't decrypt the file if it already exists on the server
+                if ( !file_exists($local_filepath) ) {
+                    // Grab the hex string representation that the file was encrypted with
+                    $key = $base_obj->getEncryptKey();
+                    // Convert the hex string representation to binary...php had a function to go bin->hex, but didn't have a function for hex->bin for at least 7 years?!?
+                    $key = pack("H*", $key);   // don't have hex2bin() in current version of php...this appears to work based on the "if it decrypts to something intelligible, you did it right" theory
+
+                    // Open the target file
+                    $handle = fopen($local_filepath, "wb");
+                    if (!$handle)
+                        throw new \Exception('Unable to open "'.$local_filepath.'" for writing');
+
+                    // Decrypt each chunk and write to target file
+                    $chunk_id = 0;
+                    while (file_exists($crypto_dir.'/'.'enc.'.$chunk_id)) {
+                        if (!file_exists($crypto_dir.'/'.'enc.'.$chunk_id))
+                            throw new \Exception('Encrypted chunk not found: '.$crypto_dir.'/'.'enc.'.$chunk_id);
+
+                        $data = file_get_contents($crypto_dir.'/'.'enc.'.$chunk_id);
+                        fwrite($handle, $crypto->decrypt($data, $key));
+                        $chunk_id++;
+                    }
+                }
+
+                if ( $archive_filepath == '' ) {
+                    $redis = $this->container->get('snc_redis.default');;
+                    // $redis->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_PHP);
+                    $redis_prefix = $this->container->getParameter('memcached_key_prefix');
+
+                    $file_decryptions = parent::getRedisData(($redis->get($redis_prefix.'_file_decryptions')));
+
+                    unset($file_decryptions[$target_filename]);
+                    $redis->set($redis_prefix.'_file_decryptions', gzcompress(serialize($file_decryptions)));
+                }
+                else {
+                    // Attempt to open the specified zip archive
+                    $handle = fopen($archive_filepath, 'c');    // create file if it doesn't exist, otherwise do not fail and position pointer at beginning of file
+                    if (!$handle)
+                        throw new \Exception('unable to open "'.$archive_filepath.'" for writing');
+
+                    // Attempt to acquire a lock on the zip archive so only one process is adding to it at a time
+                    $lock = false;
+                    while (!$lock) {
+                        $lock = flock($handle, LOCK_EX);
+                        if (!$lock)
+                            usleep(200000);     // sleep for a fifth of a second to try to acquire a lock...
+                    }
+
+                    // Open the archive for appending, or create if it doesn't exist
+                    $zip_archive = new \ZipArchive();
+                    $zip_archive->open($archive_filepath, \ZipArchive::CREATE);
+
+                    // Add the specified file to the zip archive
+                    $zip_archive->addFile($local_filepath, $desired_filename);
+                    $zip_archive->close();
+
+                    // Delete decrypted version of non-public files off the server
+                    if (!$base_obj->isPublic())
+                        unlink($local_filepath);
+
+                    // Release the lock on the zip archive
+                    flock($handle, LOCK_UN);
+                    fclose($handle);
+                }
             }
             else {
-/*
-                // ...otherwise, need to manually decrypt all file chunks and write them to the specified file
-
-                // ----------------------------------------
-                // Grab the hex string representation that the file was encrypted with
-                $key = $base_obj->getEncryptKey();
-                // Convert the hex string representation to binary...php had a function to go bin->hex, but didn't have a function for hex->bin for at least 7 years?!?
-                $key = pack("H*" , $key);   // don't have hex2bin() in current version of php...this appears to work based on the "if it decrypts to something intelligible, you did it right" theory
-
-
-                // ----------------------------------------
-                // Open the target file
-                $handle = fopen($target_filepath, "wb");
-                if (!$handle)
-                    throw new \Exception('Unable to open "'.$target_filepath.'" for writing');
-
-                // Decrypt each chunk and write to target file
-                $chunk_id = 0;
-                while( file_exists($crypto_dir.'/'.'enc.'.$chunk_id) ) {
-                    if ( !file_exists($crypto_dir.'/'.'enc.'.$chunk_id) )
-                        throw new \Exception('Encrypted chunk not found: '.$crypto_dir.'/'.'enc.'.$chunk_id);
-
-                    $data = file_get_contents($crypto_dir.'/'.'enc.'.$chunk_id);
-                    fwrite($handle, $crypto->decrypt($data, $key));
-                    $chunk_id++;
-                }
-                fclose($handle);
-
-                // Don't need to do anything else
-*/
-/*
-                $obj = null;
-                if ( strtolower($object_type) == 'file')
-                    $obj = $em->getRepository('ODRAdminBundle:File')->find($object_id);
-                else if ( strtolower($object_type) == 'image')
-                    $obj = $em->getRepository('ODRAdminBundle:Image')->find($object_id);
-                else
-                    throw new \Exception('Invalid Form, got "'.strtolower($object_type).'"');
-
-                if ($obj == null)
-                    throw new \Exception('Deleted '.$object_type);
-
-
-                $absolute_path = parent::decryptObject($object_id, $object_type);
-
-                if ( strtolower($object_type) == 'file') {
-                    clearstatcache(true, $absolute_path);
-                    $filesize = filesize($absolute_path);
-                    $checksum = md5_file($absolute_path);
-
-                    $obj->setFilesize($filesize);
-                    $obj->setOriginalChecksum($checksum);
-                    $em->persist($obj);
-                    $em->flush();
-                }
-                else if ( strtolower($object_type) == 'image') {
-                    $checksum = md5_file($absolute_path);
-
-                    $obj->setOriginalChecksum($checksum);
-                    $em->persist($obj);
-                    $em->flush();
-                }
-
-                unlink($absolute_path);
-*/
+                throw new \Exception('bad value for $crypto_type, got "'.$crypto_type.'"');
             }
 
         }
         catch (\Exception $e) {
             $return['r'] = 1;
             $return['t'] = 'ex';
-            $return['d'] = 'Error 0x65384782 ' . $e->getMessage();
+            $return['d'] = $error_prefix.$e->getMessage();
+
+            // TODO - delete the partial non-public file if some sort of error during decryption?
+
+            if ($handle != null) {
+                flock($handle, LOCK_UN);
+                fclose($handle);
+            }
         }
 
         $response = new Response(json_encode($return));
@@ -951,6 +975,7 @@ $ret .= '  Set current to '.$count."\n";
         foreach ($results as $result) {
             $dr_id = $result['dr_id'];
 
+            $redis->del($redis_prefix.'.associated_datarecords_for_'.$dr_id);
             $redis->del($redis_prefix.'.cached_datarecord_'.$dr_id);
             $redis->del($redis_prefix.'.datarecord_table_data_'.$dr_id);
         }
@@ -1196,8 +1221,8 @@ $ret .= '  Set current to '.$count."\n";
 
             if ($object_type == 'file' || $object_type == 'File')
                 $object_type = 'File';
-            else if ($object_type == 'image' || $object_type == 'Image')
-                $object_type = 'Image';
+//            else if ($object_type == 'image' || $object_type == 'Image')
+//                $object_type = 'Image';
             else
                 return null;
 
@@ -1209,6 +1234,7 @@ $ret .= '  Set current to '.$count."\n";
                     WHERE e.deletedAt IS NULL AND (e.original_checksum IS NULL OR e.filesize = 0)'
                 );
             }
+/*
             else if ($object_type == 'Image') {
                 $query = $em->createQuery(
                     'SELECT e.id
@@ -1216,6 +1242,7 @@ $ret .= '  Set current to '.$count."\n";
                     WHERE e.deletedAt IS NULL AND e.original_checksum IS NULL'
                 );
             }
+*/
             $results = $query->getResult();
 
             $object_type = strtolower($object_type);
@@ -1226,8 +1253,12 @@ $ret .= '  Set current to '.$count."\n";
                     array(
                         "object_type" => $object_type,
                         "object_id" => $file['id'],
-                        "target_filepath" => '',
+                        "target_filename" => '',
                         "crypto_type" => 'decrypt',
+
+                        "archive_filepath" => '',
+                        "desired_filename" => '',
+
                         "redis_prefix" => $redis_prefix,    // debug purposes only
                         "url" => $url,
                         "api_key" => $api_key,
@@ -1252,67 +1283,8 @@ $ret .= '  Set current to '.$count."\n";
 
 
     /**
-     * Called by the mass_encrypt worker background process to decrypt a single file/image.
+     * @deprecated
      *
-     * @param Request $request
-     *
-     * @return Response
-     */
-    public function decryptAction(Request $request)
-    {
-/*
-        $return = array();
-        $return['r'] = 0;
-        $return['t'] = "";
-        $return['d'] = "";
-
-        try {
-            $post = $_POST;
-            if ( !isset($post['object_type']) || !isset($post['object_id']) || !isset($post['api_key']) )
-                throw new \Exception('Invalid Form');
-
-            // Pull data from the post
-            $object_type = $post['object_type'];
-            $object_id = $post['object_id'];
-            $api_key = $post['api_key'];
-
-            // Load symfony objects
-            $em = $this->getDoctrine()->getManager();
-
-            $beanstalk_api_key = $this->container->getParameter('beanstalk_api_key');
-            if ($api_key !== $beanstalk_api_key)
-                throw new \Exception('Invalid Form');
-
-            $obj = null;
-            if ($object_type == 'file')
-                $obj = $em->getRepository('ODRAdminBundle:File')->find($object_id);
-//            else if ($object_type == 'image')
-//                $obj = $em->getRepository('ODRAdminBundle:Image')->find($object_id);
-
-            $absolute_path = parent::decryptObject($object_id, $object_type);
-            $return['d'] = '>> Decrypted '.$object_type.' '.$object_id."\n";
-
-            $obj->setFilesize( filesize($absolute_path) );
-
-            $em->persist($obj);
-            $em->flush();
-
-            unlink($absolute_path);
-        }
-        catch (\Exception $e) {
-            $return['r'] = 1;
-            $return['t'] = 'ex';
-            $return['d'] = 'Error 0x38373431 ' . $e->getMessage();
-        }
-
-        $response = new Response(json_encode($return));
-        $response->headers->set('Content-Type', 'application/json');
-        return $response;
-*/
-    }
-
-
-    /**
      * @param Request $request
      *
      * @return Response
@@ -1339,6 +1311,8 @@ $ret .= '  Set current to '.$count."\n";
             // $redis->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_PHP);
 
             $api_key = $this->container->getParameter('beanstalk_api_key');
+
+            throw new \Exception('DO NOT CONTINUE [DEPRECATED]');
 
             // --------------------
             // Determine user privileges
@@ -1385,6 +1359,8 @@ $ret .= '  Set current to '.$count."\n";
 
 
     /**
+     * @deprecated
+     *
      * @param Request $request
      *
      * @return Response
@@ -1401,7 +1377,7 @@ $ret .= '  Set current to '.$count."\n";
             if ( !isset($post['object_type']) || !isset($post['object_id']) || !isset($post['api_key']) )
                 throw new \Exception('Invalid Form');
 
-            throw new \Exception('DO NOT CONTINUE');
+            throw new \Exception('DO NOT CONTINUE [DEPRECATED]');
 
             // Pull data from the post
             $object_type = $post['object_type'];

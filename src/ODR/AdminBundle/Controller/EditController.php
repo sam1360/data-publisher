@@ -448,11 +448,11 @@ class EditController extends ODRCustomController
 
             if ( count($remaining) > 0 ) {
                 // Return to the list of datarecords since at least one datarecord of this datatype still exists
-                $url = $this->generateURL('odr_search_render', array('search_key' => $search_key));
+                $url = $this->generateUrl('odr_search_render', array('search_key' => $search_key));
             }
             else {
                 // ...otherwise, return to the list of datatypes
-                $url = $this->generateURL('odr_list_types', array('section' => 'records'));
+                $url = $this->generateUrl('odr_list_types', array('section' => 'records'));
             }
 
             $return['d'] = $url;
@@ -708,7 +708,7 @@ class EditController extends ODRCustomController
             $datatype_id = $datatype->getId();
 
             // Files that aren't done encrypting shouldn't be modified
-            if ($file->getOriginalChecksum() == '')
+            if ($file->getProvisioned() == true)
                 return parent::deletedEntityError('File');
 
 
@@ -800,6 +800,9 @@ class EditController extends ODRCustomController
             // Get Entity Manager and setup repo
             /** @var \Doctrine\ORM\EntityManager $em */
             $em = $this->getDoctrine()->getManager();
+            $redis = $this->container->get('snc_redis.default');;
+            // $redis->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_PHP);
+            $redis_prefix = $this->container->getParameter('memcached_key_prefix');
 
             // Grab the necessary entities
             /** @var File $file */
@@ -808,21 +811,21 @@ class EditController extends ODRCustomController
                 return parent::deletedEntityError('File');
 
             $datafield = $file->getDataField();
-            if ( $datafield == null )
+            if ($datafield->getDeletedAt() != null)
                 return parent::deletedEntityError('DataField');
             $datafield_id = $datafield->getId();
 
             $datarecord = $file->getDataRecord();
-            if ( $datarecord == null )
+            if ($datarecord->getDeletedAt() != null)
                 return parent::deletedEntityError('DataRecord');
 
             $datatype = $datarecord->getDataType();
-            if ( $datatype == null )
+            if ($datatype->getDeletedAt() != null)
                 return parent::deletedEntityError('DataType');
             $datatype_id = $datatype->getId();
 
             // Files that aren't done encrypting shouldn't be modified
-            if ($file->getOriginalChecksum() == '')
+            if ($file->getProvisioned() == true)
                 return parent::deletedEntityError('File');
 
             // --------------------
@@ -875,8 +878,46 @@ class EditController extends ODRCustomController
                 $properties = array('publicDate' => $public_date);
                 parent::ODR_copyFileMeta($em, $user, $file, $properties);
 
-                // Immediately decrypt the file
-                parent::decryptObject($file->getId(), 'file');
+                // ----------------------------------------
+                // Generate the url for cURL to use
+                $pheanstalk = $this->get('pheanstalk');
+                $router = $this->container->get('router');
+                $url = $this->container->getParameter('site_baseurl');
+                $url .= $router->generate('odr_crypto_request');
+
+                $api_key = $this->container->getParameter('beanstalk_api_key');
+                $file_decryptions = parent::getRedisData(($redis->get($redis_prefix.'_file_decryptions')));
+
+                // Determine the filename after decryption
+                $target_filename = 'File_'.$file_id.'.'.$file->getExt();
+                if ( !isset($file_decryptions[$target_filename]) ) {
+                    // File is not scheduled to get decrypted at the moment, store that it will be decrypted
+                    $file_decryptions[$target_filename] = 1;
+                    $redis->set($redis_prefix.'_file_decryptions', gzcompress(serialize($file_decryptions)));
+
+                    // Schedule a beanstalk job to start decrypting the file
+                    $priority = 1024;   // should be roughly default priority
+                    $payload = json_encode(
+                        array(
+                            "object_type" => 'File',
+                            "object_id" => $file_id,
+                            "target_filename" => $target_filename,
+                            "crypto_type" => 'decrypt',
+
+                            "archive_filepath" => '',
+                            "desired_filename" => '',
+
+                            "redis_prefix" => $redis_prefix,    // debug purposes only
+                            "url" => $url,
+                            "api_key" => $api_key,
+                        )
+                    );
+
+                    $delay = 0;
+                    $pheanstalk->useTube('crypto_requests')->put($payload, $priority, $delay);
+                }
+
+                /* otherwise, decryption already in progress, do nothing */
             }
 
             // Reload the file entity so its associated meta entry gets updated in the EntityManager
@@ -895,7 +936,26 @@ class EditController extends ODRCustomController
             // TODO - execute graph plugin?
             parent::tmp_updateDatarecordCache($em, $datarecord, $user);
 
-            // TODO - update cached search results?
+
+            // ----------------------------------------
+            // See if any cached search results need to be deleted...
+            $datatree_array = parent::getDatatreeArray($em);
+            $grandparent_datatype_id = parent::getGrandparentDatatypeId($datatree_array, $datatype->getId());
+
+            $cached_searches = parent::getRedisData(($redis->get($redis_prefix.'.cached_search_results')));
+            if ( $cached_searches != false && isset($cached_searches[$grandparent_datatype_id]) ) {
+                // Delete all cached search results for this datatype that were run with criteria for this specific datafield
+                foreach ($cached_searches[$grandparent_datatype_id] as $search_checksum => $search_data) {
+                    $searched_datafields = $search_data['searched_datafields'];
+                    $searched_datafields = explode(',', $searched_datafields);
+
+                    if ( in_array($datafield_id, $searched_datafields) )
+                        unset( $cached_searches[$grandparent_datatype_id][$search_checksum] );
+                }
+
+                // Save the collection of cached searches back to memcached
+                $redis->set($redis_prefix.'.cached_search_results', gzcompress(serialize($cached_searches)));
+            }
         }
         catch (\Exception $e) {
             $return['r'] = 1;
@@ -2220,6 +2280,13 @@ if ($debug) {
 if ($debug)
     print "\nremote datatype: ".$remote_datatype->getId()."\n";
 
+            // ----------------------------------------
+            // Ensure the remote datatype has a table theme...
+            /** @var Theme $theme */
+            $theme = $em->getRepository('ODRAdminBundle:Theme')->findOneBy( array('dataType' => $remote_datatype->getId(), 'themeType' => 'table') );
+            if ($theme == null)
+                throw new \Exception('Remote Datatype does not have a Table Theme');
+
 
             // ----------------------------------------
             // Grab all datarecords currently linked to the local_datarecord
@@ -2327,12 +2394,6 @@ if ($debug) {
 
 
             // ----------------------------------------
-            // Convert the list of already-linked datarecords into table format for displaying and manipulation
-            /** @var Theme $theme */
-            $theme = $em->getRepository('ODRAdminBundle:Theme')->findOneBy( array('dataType' => $remote_datatype->getId(), 'themeType' => 'table') );
-            if ($theme == null)
-                return parent::deletedEntityError('Theme');
-
             // Convert the list of linked datarecords into a slightly different format so renderTextResultsList() can build it
             $datarecord_list = array();
             foreach ($linked_datarecords as $dr_id => $value)
@@ -2505,8 +2566,9 @@ exit();
                 $query = $em->createQuery(
                    'SELECT dr.id AS dr_id
                     FROM ODRAdminBundle:DataRecord AS dr
-                    WHERE dr.id IN (:datarecord_ids) AND dr.public_date = "2200-01-01 00:00:00"
-                    AND dr.deletedAt IS NULL'
+                    JOIN ODRAdminBundle:DataRecordMeta AS drm WITH drm.dataRecord = dr
+                    WHERE dr.id IN (:datarecord_ids) AND drm.publicDate = "2200-01-01 00:00:00"
+                    AND dr.deletedAt IS NULL AND drm.deletedAt IS NULL'
                 )->setParameters( array('datarecord_ids' => $remote_datarecord_ids) );
                 $results = $query->getArrayResult();
 
@@ -2997,6 +3059,23 @@ if ($debug)
         // ----------------------------------------
         // Delete everything that the user isn't allowed to see from the datatype/datarecord arrays
         parent::filterByGroupPermissions($datatype_array, $datarecord_array, $user_permissions);
+//print '<pre>'.print_r($datatype_array, true).'</pre>';  exit();
+//print '<pre>'.print_r($datarecord_array, true).'</pre>';  exit();
+
+
+        // "Inflate" the currently flattened $datarecord_array and $datatype_array...needed so that render plugins for a datatype can also correctly render that datatype's child/linked datatypes
+        $stacked_datarecord_array = array();
+        $stacked_datatype_array = array();
+        if ($template_name == 'default') {
+            $stacked_datarecord_array[ $datarecord->getId() ] = parent::stackDatarecordArray($datarecord_array, $datarecord->getId());
+            $stacked_datatype_array[ $datatype->getId() ] = parent::stackDatatypeArray($datatype_array, $datatype->getId(), $theme->getId());
+        }
+        else if ($template_name == 'child') {
+            $stacked_datarecord_array[ $initial_datarecord_id ] = parent::stackDatarecordArray($datarecord_array, $initial_datarecord_id);
+            $stacked_datatype_array[ $child_datatype->getId() ] = parent::stackDatatypeArray($datatype_array, $child_datatype->getId(), $theme->getId());
+        }
+//print '<pre>'.print_r($stacked_datarecord_array, true).'</pre>';  exit();
+//print '<pre>'.print_r($stacked_datatype_array, true).'</pre>';  exit();
 
 
         // ----------------------------------------
@@ -3005,18 +3084,7 @@ if ($debug)
 
         $html = '';
         if ($template_name == 'default') {
-
-            // If this request isn't for a top-level datarecord, then the datarecord array needs to have entries removed so twig doesn't render more than it should...TODO - still leaves more than it should
-            if ($is_top_level == 0) {
-                $target_datarecord_parent_id = $datarecord_array[ $datarecord->getId() ]['parent']['id'];
-                unset( $datarecord_array[$target_datarecord_parent_id] );
-
-                foreach ($datarecord_array as $dr_id => $dr) {
-                    if ( $dr_id !== $datarecord->getId() && $dr['parent']['id'] == $target_datarecord_parent_id )
-                        unset( $datarecord_array[$dr_id] );
-                }
-            }
-
+            // ----------------------------------------
             // Need to determine ids and names of datatypes this datarecord can link to
             $query = $em->createQuery(
                'SELECT ancestor.id AS ancestor_id, ancestor_meta.shortName AS ancestor_name, descendant.id AS descendant_id, descendant_meta.shortName AS descendant_name
@@ -3040,6 +3108,45 @@ if ($debug)
                     $linked_datatype_ancestors[ $result['ancestor_id'] ] = $result['ancestor_name'];
             }
 
+            // ----------------------------------------
+            // Remove ids/names of datatypes this datarecord can link to if the datatype doesn't have a table theme
+            $disabled_datatype_links = array();
+            foreach ($linked_datatype_descendants as $dt_id => $dt_name) {
+
+                $has_table_theme = false;
+                if ( isset($datatype_array[$dt_id]) ) {
+                    foreach ($datatype_array[$dt_id]['themes'] as $num => $t) {
+                        if ($t['themeType'] == 'table')
+                            $has_table_theme = true;
+                    }
+                }
+
+                if (!$has_table_theme) {
+                    $disabled_datatype_links[$dt_id] = $dt_name;
+                    unset( $linked_datatype_descendants[$dt_id] );
+                }
+            }
+            foreach ($linked_datatype_ancestors as $dt_id => $dt_name) {
+
+                // $datatype_array won't have data on an "ancestor" datatype, so have to load data for each of them from the cache...
+                $anc_dt_data = parent::getRedisData(($redis->get($redis_prefix.'.cached_datatype_'.$dt_id)));
+                if ($anc_dt_data == false)
+                    $anc_dt_data = parent::getDatatypeData($em, $datatree_array, $dt_id);
+
+                $has_table_theme = false;
+                foreach ($anc_dt_data[$dt_id]['themes'] as $num => $t) {
+                    if ( $t['themeType'] == 'table' )
+                        $has_table_theme = true;
+                }
+
+                if (!$has_table_theme) {
+                    $disabled_datatype_links[$dt_id] = $dt_name;
+                    unset( $linked_datatype_ancestors[$dt_id] );
+                }
+            }
+
+
+            // ----------------------------------------
             // Generate a csrf token for each of the datarecord/datafield pairs
             $token_list = self::generateCSRFTokens($datatype_array, $datarecord_array);
 
@@ -3048,8 +3155,8 @@ if ($debug)
                 array(
                     'search_key' => $search_key,
 
-                    'datatype_array' => $datatype_array,
-                    'datarecord_array' => $datarecord_array,
+                    'datatype_array' => $stacked_datatype_array,
+                    'datarecord_array' => $stacked_datarecord_array,
                     'theme_id' => $theme->getId(),
 
                     'initial_datatype_id' => $datatype->getId(),
@@ -3060,6 +3167,7 @@ if ($debug)
 
                     'linked_datatype_ancestors' => $linked_datatype_ancestors,
                     'linked_datatype_descendants' => $linked_datatype_descendants,
+                    'disabled_datatype_links' => $disabled_datatype_links,
 
                     'is_top_level' => $is_top_level,
                     'token_list' => $token_list,
@@ -3103,8 +3211,8 @@ if ($debug)
             $html = $templating->render(
                 'ODRAdminBundle:Edit:edit_childtype_reload.html.twig',
                 array(
-                    'datatype_array' => $datatype_array,
-                    'datarecord_array' => $datarecord_array,
+                    'datatype_array' => $stacked_datatype_array,
+                    'datarecord_array' => $stacked_datarecord_array,
                     'theme_id' => $theme->getId(),
 
                     'target_datatype_id' => $child_datatype->getId(),
@@ -3201,15 +3309,18 @@ if ($debug)
                 foreach ($theme['themeElements'] as $te_num => $te) {
                     if ( isset($te['themeDataFields']) ) {
                         foreach ($te['themeDataFields'] as $tdf_num => $tdf) {
-                            if ( !isset($tdf['dataField']) )
-                                throw new \Exception('Datarecord '.$dr['id'].' ThemeDatafield '.$tdf['id'].' missing a datafield entry!');
+                            if ( !isset($tdf['dataField']) ) {
+                                // Don't throw an exception if the datafield entry in the array doesn't exist...it just means that the user can't see that datafield, so therefore no need for a csrf token
+                                //throw new \Exception('Datarecord '.$dr['id'].' ThemeDatafield '.$tdf['id'].' missing a datafield entry!');
+                            }
+                            else {
+                                $df_id = $tdf['dataField']['id'];
+                                $typeclass = $tdf['dataField']['dataFieldMeta']['fieldType']['typeClass'];
 
-                            $df_id = $tdf['dataField']['id'];
-                            $typeclass = $tdf['dataField']['dataFieldMeta']['fieldType']['typeClass'];
+                                $token_id = $typeclass.'Form_'.$dr_id.'_'.$df_id;
 
-                            $token_id = $typeclass.'Form_'.$dr_id.'_'.$df_id;
-
-                            $token_list[$dr_id][$df_id] = $token_generator->getToken($token_id)->getValue();
+                                $token_list[$dr_id][$df_id] = $token_generator->getToken($token_id)->getValue();
+                            }
                         }
                     }
                 }
@@ -3217,6 +3328,128 @@ if ($debug)
         }
 
         return $token_list;
+    }
+
+
+    /**
+     * Given a datarecord and datafield, re-render and return the html for files uploaded to that datafield.
+     *
+     * @param integer $datafield_id  The database id of the DataField inside the DataRecord to re-render.
+     * @param integer $datarecord_id The database id of the DataRecord to re-render
+     * @param Request $request
+     *
+     * @return Response
+     */
+    public function reloadfiledatafieldAction($datafield_id, $datarecord_id, Request $request)
+    {
+        $return = array();
+        $return['r'] = 0;
+        $return['t'] = 'html';
+        $return['d'] = '';
+
+        try {
+            // Grab necessary objects
+            /** @var \Doctrine\ORM\EntityManager $em */
+            $em = $this->getDoctrine()->getManager();
+
+            /** @var DataFields $datafield */
+            $datafield = $em->getRepository('ODRAdminBundle:DataFields')->find($datafield_id);
+            if ($datafield == null)
+                return parent::deletedEntityError('Datafield');
+
+            $datatype = $datafield->getDataType();
+            if ($datatype == null)
+                return parent::deletedEntityError('Datatype');
+            $datatype_id = $datatype->getId();
+
+            /** @var DataRecord $datarecord */
+            $datarecord = $em->getRepository('ODRAdminBundle:DataRecord')->find($datarecord_id);
+            if ($datarecord == null)
+                return parent::deletedEntityError('Datarecord');
+
+            /** @var Theme $theme */
+            $theme = $em->getRepository('ODRAdminBundle:Theme')->findOneBy( array('dataType' => $datatype->getId(), 'themeType' => 'master') );
+            if ($theme == null)
+                return parent::deletedEntityError('Theme');
+
+
+            // --------------------
+            // Determine user privileges
+            /** @var User $user */
+            $user = $this->container->get('security.token_storage')->getToken()->getUser();
+            $user_permissions = parent::getUserPermissionsArray($em, $user->getId());
+            $datatype_permissions = $user_permissions['datatypes'];
+            $datafield_permissions = $user_permissions['datafields'];
+
+            $can_view_datatype = false;
+            if ( isset($datatype_permissions[$datatype_id]) && isset($datatype_permissions[$datatype_id]['dt_view']) )
+                $can_view_datatype = true;
+
+            $can_view_datarecord = false;
+            if ( isset($datatype_permissions[$datatype_id]) && isset($datatype_permissions[$datatype_id]['dr_view']) )
+                $can_view_datarecord = true;
+
+            $can_edit_datarecord = false;
+            if ( isset($datatype_permissions[$datatype_id]) && isset($datatype_permissions[$datatype_id]['dr_edit']) )
+                $can_edit_datarecord = true;
+
+            $can_view_datafield = false;
+            if ( isset($datafield_permissions[$datafield_id]) && isset($datafield_permissions[$datafield_id]['view']) )
+                $can_view_datafield = true;
+
+            // If the datatype/datarecord/datafield is not public and the user doesn't have view permissions, or the user doesn't have edit permissions...don't reload the datafield HTML
+            if ( !($datatype->isPublic() || $can_view_datatype) || !($datarecord->isPublic() || $can_view_datarecord) || !($datafield->isPublic() || $can_view_datafield) || !$can_edit_datarecord )
+                return parent::permissionDeniedError("edit");
+            // --------------------
+
+            // Don't run if the datafield isn't a file datafield
+            if ( $datafield->getFieldType()->getTypeClass() !== 'File' )
+                throw new \Exception('Datafield is not of a File Typeclass');
+
+
+            // Load all files uploaded to this datafield
+            $query = $em->createQuery(
+               'SELECT f, fm, f_cb
+                FROM ODRAdminBundle:File AS f
+                JOIN f.fileMeta AS fm
+                JOIN f.createdBy AS f_cb
+                WHERE f.dataRecord = :datarecord_id AND f.dataField = :datafield_id
+                AND f.deletedAt IS NULL AND fm.deletedAt IS NULL'
+            )->setParameters( array('datarecord_id' => $datarecord->getId(), 'datafield_id' => $datafield->getId()) );
+            $results = $query->getArrayResult();
+
+            $file_list = array();
+            foreach ($results as $num => $result) {
+                $file = $result;
+                $file['fileMeta'] = $result['fileMeta'][0];
+                $file['createdBy'] = parent::cleanUserData($result['createdBy']);
+
+                $file_list[$num] = $file;
+            }
+
+            // Render and return the HTML for the list of files
+            $templating = $this->get('templating');
+            $return['d'] = array(
+                'html' => $templating->render(
+                    'ODRAdminBundle:Edit:edit_file_datafield.html.twig',
+                    array(
+                        'datafield' => $datafield,
+                        'datarecord' => $datarecord,
+
+                        'files' => $file_list,
+                    )
+                )
+            );
+        }
+        catch (\Exception $e) {
+            $return['r'] = 1;
+            $return['t'] = 'ex';
+            $return['d'] = 'Error 0x833871285 ' . $e->getMessage();
+        }
+
+        $response = new Response(json_encode($return));
+        $response->headers->set('Content-Type', 'application/json');
+        return $response;
     }
 
 

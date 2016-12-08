@@ -75,12 +75,16 @@ class CSVExportController extends ODRCustomController
             $datatype_permissions = $user_permissions['datatypes'];
             $datafield_permissions = $user_permissions['datafields'];
 
-            $is_datatype_admin = false;
-            if ( isset($datatype_permissions[$datatype_id]) && isset($datatype_permissions[$datatype_id]['dt_admin']) )   // TODO - add new permission, or change to allow everybody to export?
-                $is_datatype_admin = true;
+            $can_view_datatype = false;
+            if ( isset($datatype_permissions[$datatype_id]) && isset($datatype_permissions[$datatype_id]['dt_view']) )
+                $can_view_datatype = true;
+
+            $can_edit_datarecord = false;
+            if ( isset($datatype_permissions[$datatype_id]) && isset($datatype_permissions[$datatype_id]['dr_edit']) )
+                $can_edit_datarecord = true;
 
             // Ensure user has permissions to be doing this
-            if (!$is_datatype_admin)
+            if ( !$user->hasRole('ROLE_ADMIN') || !($datatype->isPublic() || $can_view_datatype) || !$can_edit_datarecord )
                 return parent::permissionDeniedError("export");
             // --------------------
 
@@ -104,7 +108,7 @@ class CSVExportController extends ODRCustomController
                 // If there is no tab id for some reason, or the user is attempting to view a datarecord from a search that returned no results...
                 if ( $odr_tab_id === '' || $data['redirect'] == true || ($encoded_search_key !== '' && $datarecord_list === '') ) {
                     // ...get the search controller to redirect to "no results found" page
-                    $url = $this->generateUrl('odr_search_render', array('search_key' => $data['encoded_search_key'], 'offset' => 1, 'source' => 'searching'));
+                    $url = $this->generateUrl('odr_search_render', array('theme_id' => 0, 'search_key' => $data['encoded_search_key']));
                     return parent::searchPageRedirect($user, $url);
                 }
 
@@ -266,6 +270,7 @@ class CSVExportController extends ODRCustomController
             $url = $this->container->getParameter('site_baseurl');
             $url .= $this->container->get('router')->generate('odr_csv_export_construct');
 
+
             // --------------------
             // Determine user privileges
             /** @var User $user */
@@ -273,12 +278,16 @@ class CSVExportController extends ODRCustomController
             $user_permissions = parent::getUserPermissionsArray($em, $user->getId());
             $datatype_permissions = $user_permissions['datatypes'];
 
-            $is_datatype_admin = false;
-            if ( isset($datatype_permissions[$datatype_id]) && isset($datatype_permissions[$datatype_id]['dt_admin']) )   // TODO - add new permission, or change to allow everybody to export?
-                $is_datatype_admin = true;
+            $can_view_datatype = false;
+            if ( isset($datatype_permissions[$datatype_id]) && isset($datatype_permissions[$datatype_id]['dt_view']) )
+                $can_view_datatype = true;
+
+            $can_edit_datarecord = false;
+            if ( isset($datatype_permissions[$datatype_id]) && isset($datatype_permissions[$datatype_id]['dr_edit']) )
+                $can_edit_datarecord = true;
 
             // Ensure user has permissions to be doing this
-            if (!$is_datatype_admin)
+            if ( !$user->hasRole('ROLE_ADMIN') || !($datatype->isPublic() || $can_view_datatype) || !$can_edit_datarecord )
                 return parent::permissionDeniedError("export");
             // --------------------
 
@@ -1090,6 +1099,7 @@ print_r($line);
             $datatype = $em->getRepository('ODRAdminBundle:DataType')->find( $tmp[1] );
             if ($datatype == null)
                 return parent::deletedEntityError("DataType");
+            $datatype_id = $datatype->getId();
 
             // --------------------
             // Determine user privileges
@@ -1098,12 +1108,16 @@ print_r($line);
             $user_permissions = parent::getUserPermissionsArray($em, $user->getId());
             $datatype_permissions = $user_permissions['datatypes'];
 
-            $is_datatype_admin = false;
-            if ( isset($datatype_permissions[ $datatype->getId() ]) && isset($datatype_permissions[ $datatype->getId() ]['dt_admin']) )   // TODO - add new permission, or change to allow everybody to export?
-                $is_datatype_admin = true;
+            $can_view_datatype = false;
+            if ( isset($datatype_permissions[$datatype_id]) && isset($datatype_permissions[$datatype_id]['dt_view']) )
+                $can_view_datatype = true;
+
+            $can_edit_datarecord = false;
+            if ( isset($datatype_permissions[$datatype_id]) && isset($datatype_permissions[$datatype_id]['dr_edit']) )
+                $can_edit_datarecord = true;
 
             // Ensure user has permissions to be doing this
-            if (!$is_datatype_admin)
+            if ( !$user->hasRole('ROLE_ADMIN') || !($datatype->isPublic() || $can_view_datatype) || !$can_edit_datarecord )
                 return parent::permissionDeniedError("export");
             // --------------------
 

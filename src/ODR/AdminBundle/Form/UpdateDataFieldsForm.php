@@ -157,15 +157,6 @@ class UpdateDataFieldsForm extends AbstractType
         );
 
         $builder->add(
-            'user_only_search',
-            CheckboxType::class,
-            array(
-                'label'  => 'Only Searchable by Registered Users',
-                'required' => false
-            )
-        );
-
-        $builder->add(
             'allow_multiple_uploads',
             CheckboxType::class,
             array(

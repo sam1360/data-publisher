@@ -32,6 +32,7 @@ use ODR\OpenRepository\UserBundle\Entity\User;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 
 class DefaultController extends Controller
@@ -297,7 +298,7 @@ exit();
 
         // Get all searchable datafields of all datatypes that the user is allowed to search on
         $query = $em->createQuery(
-           'SELECT dt.id AS dt_id, dfm.publicDate AS public_date, dfm.user_only_search AS user_only_search, df
+           'SELECT dt.id AS dt_id, dfm.publicDate AS public_date, df
             FROM ODRAdminBundle:DataType AS dt
             JOIN ODRAdminBundle:Theme AS t WITH t.dataType = dt
             JOIN ODRAdminBundle:ThemeElement AS te WITH te.theme = t
@@ -316,7 +317,6 @@ exit();
         foreach ($results as $result) {
             $dt_id = $result['dt_id'];
             $public_date = $result['public_date']->format('Y-m-d H:i:s');
-            $user_only_search = $result['user_only_search'];
 
             /** @var DataFields $datafield */
             $datafield = $result[0];
@@ -330,8 +330,8 @@ exit();
             if ( isset($datafield_permissions[$df_id]) && isset($datafield_permissions[$df_id]['view']) )
                 $can_view_datafield = true;
 
-            if ( (!$logged_in && $user_only_search == 1) || (!$datafield_is_public && !$can_view_datafield) ) {
-                // either the datafield isn't visible to non-logged in users, or the user lacks the view permission for this datafield...either way, don't save in $datafield_array
+            if ( !$datafield_is_public && !$can_view_datafield ) {
+                // the user lacks the view permission for this datafield...don't save in $datafield_array
             }
             else {
                 // The user has permissions to view this datafield...save it
@@ -370,29 +370,6 @@ exit();
 
             $cookies = $request->cookies;
 
-            // Locate the datatype referenced by the search slug, if possible...
-            $target_datatype = null;
-            if ($search_slug == '') {
-                if ( $cookies->has('prev_searched_datatype') ) {
-                    $search_slug = $cookies->get('prev_searched_datatype');
-                    return $this->redirect( $this->generateURL('odr_search', array( 'search_slug' => $search_slug ) ));
-                }
-                else {
-                    return self::searchPageError("Page not found", $request);
-                }
-            }
-            else {
-                /** @var DataTypeMeta $meta_entry */
-                $meta_entry = $em->getRepository('ODRAdminBundle:DataTypeMeta')->findOneBy( array('searchSlug' => $search_slug) );
-                if ($meta_entry == null)
-                    return self::searchPageError("Page not found", $request);
-                $target_datatype = $meta_entry->getDataType();
-                if ($target_datatype == null)
-                    return self::searchPageError("Page not found", $request);
-            }
-            /** @var DataType $target_datatype */
-
-
             // ------------------------------
             // Grab user and their permissions if possible
             /** @var User $admin_user */
@@ -414,6 +391,39 @@ exit();
             }
             // ------------------------------
 
+
+            // Locate the datatype referenced by the search slug, if possible...
+            $target_datatype = null;
+            if ($search_slug == '') {
+                if ( $cookies->has('prev_searched_datatype') ) {
+                    $search_slug = $cookies->get('prev_searched_datatype');
+                    return $this->redirect( $this->generateUrl('odr_search', array( 'search_slug' => $search_slug ) ));
+                }
+                else {
+                    if ($logged_in) {
+                        // Instead of displaying a "page not found", redirect to the datarecord list
+                        $baseurl = $this->generateUrl('odr_admin_homepage');
+                        $hash = $this->generateUrl('odr_list_types', array( 'section' => 'records') );
+
+                        return $this->redirect( $baseurl.'#'.$hash );
+                    }
+                    else {
+                        return $this->redirect( $this->generateUrl('odr_admin_homepage') );
+                    }
+                }
+            }
+            else {
+                /** @var DataTypeMeta $meta_entry */
+                $meta_entry = $em->getRepository('ODRAdminBundle:DataTypeMeta')->findOneBy( array('searchSlug' => $search_slug) );
+                if ($meta_entry == null)
+                    return self::searchPageError("Page not found", $request);
+                $target_datatype = $meta_entry->getDataType();
+                if ($target_datatype == null)
+                    return self::searchPageError("Page not found", $request);
+            }
+            /** @var DataType $target_datatype */
+
+
             // Check if user has permission to view datatype
             $target_datatype_id = $target_datatype->getId();
 
@@ -430,35 +440,12 @@ exit();
 
             // Need to grab all searchable datafields for the target_datatype and its descendants
 
-$debug = true;
-$debug = false;
-
             // ----------------------------------------
             // Grab ids of all datatypes related to the requested datatype that the user can view
             $related_datatypes = self::getRelatedDatatypes($em, $target_datatype_id, $datatype_permissions);
 
-if ($debug) {
-    print '<pre>';
-    print "\n\n\n";
-//    print '$user_permissions: '.print_r($user_permissions, true)."\n";
-    print '$related_datatypes: '.print_r($related_datatypes, true)."\n";
-}
-            // Grab all searchable datafields 
+            // Grab all searchable datafields
             $searchable_datafields = self::getSearchableDatafields($em, $related_datatypes, $logged_in, $datatype_permissions, $datafield_permissions);
-
-if ($debug) {
-    $print = array();
-    foreach ($searchable_datafields as $dt_id => $tmp) {
-        $print[$dt_id] = array();
-        foreach ($tmp as $num => $df)
-            $print[$dt_id][] = $df->getId();
-    }
-
-    print '$searchable_datafields: '.print_r($print, true)."\n";
-    print '</pre>';
-//exit();
-}
-
 
             // ----------------------------------------
             // Grab a random background image if one exists and the user is allowed to see it
@@ -586,9 +573,8 @@ if ($debug) {
             $session->set('scroll_target', '');
         }
         catch (\Exception $e) {
-            $return['r'] = 1;
-            $return['t'] = 'ex';
-            $return['d'] = 'Error 0x81286282 ' . $e->getMessage();
+            // This and ODRAdminBundle:Default:indexAction() are currently the only two controller actions that make Symfony handle the errors instead of AJAX popups
+            throw new HttpException( 500, 'Error 0x81286282', $e );
         }
 
         $response = new Response($html);
@@ -801,7 +787,7 @@ if ($debug) {
                 }
             }
 
-            if ($datatype_id == '')
+            if ( $datatype_id == ''|| !is_numeric($datatype_id) )
                 throw new \Exception('Invalid search string');
 
 
@@ -831,7 +817,7 @@ if ($debug) {
 
                 // Can't use $this->redirect, because it won't update the hash...
                 $return['r'] = 2;
-                $return['d'] = array( 'url' => $this->generateURL('odr_display_view', array('datarecord_id' => $datarecord_id)) );
+                $return['d'] = array( 'url' => $this->generateUrl('odr_display_view', array('datarecord_id' => $datarecord_id)) );
 
                 $response = new Response(json_encode($return));
                 $response->headers->set('Content-Type', 'application/json');
@@ -903,8 +889,8 @@ if ($debug) {
             if ( $search_params['error'] == true ) {
                 throw new \Exception( $search_params['message'] );
             }
-            // Theoretically, this should never be true...
             else if ( $search_params['redirect'] == true ) {
+                // Theoretically, this should never be true...
                 /** @var ODRCustomController $odrcc */
                 $odrcc = $this->get('odr_custom_controller', $request);
                 $odrcc->setContainer($this->container);
@@ -915,6 +901,7 @@ if ($debug) {
                 return $odrcc->searchPageRedirect($user, $url);
             }
 
+            // Intentionally does nothing...ODROpenRepository::Default::search.html.twig will force a URL change once this controller action returns
         }
         catch (\Exception $e) {
             $return['r'] = 1;
@@ -1273,7 +1260,7 @@ if (isset($debug['timing'])) {
 
         // Get all searchable datafields of all datatypes that the user is allowed to search on
         $query = $em->createQuery(
-           'SELECT dt.id AS dt_id, dfm.publicDate AS public_date, df.id AS df_id, dfm.user_only_search AS user_only_search, dfm.searchable AS searchable, ft.typeClass AS type_class
+           'SELECT dt.id AS dt_id, dfm.publicDate AS public_date, df.id AS df_id, dfm.searchable AS searchable, ft.typeClass AS type_class
             FROM ODRAdminBundle:DataType AS dt
             JOIN ODRAdminBundle:Theme AS t WITH t.dataType = dt
             JOIN ODRAdminBundle:ThemeElement AS te WITH te.theme = t
@@ -1290,7 +1277,6 @@ if (isset($debug['timing'])) {
             $dt_id = $result['dt_id'];
             $public_date = $result['public_date']->format('Y-m-d H:i:s');
             $df_id = $result['df_id'];
-            $user_only_search = $result['user_only_search'];
             $searchable = $result['searchable'];
             $typeclass = $result['type_class'];
 
@@ -1302,8 +1288,8 @@ if (isset($debug['timing'])) {
             if ( isset($datafield_permissions[$df_id]) && isset($datafield_permissions[$df_id]['view']) )
                 $has_view_permission = true;
 
-            if ( (!$logged_in && $user_only_search == 1) || (!$datafield_is_public && !$has_view_permission) ) {
-                /* either the datafield isn't visible to non-logged in users, or the user lacks the view permission for this datafield...either way, don't save in $datafield_array */
+            if ( !$datafield_is_public && !$has_view_permission ) {
+                // the user lacks the view permission for this datafield...don't save in $datafield_array
             }
             else {
                 // Save the datafield id and typeclass in the list of datafields to run a general search on, assuming it's a valid fieldtype for general search

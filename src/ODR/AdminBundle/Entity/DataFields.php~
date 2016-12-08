@@ -532,16 +532,6 @@ class DataFields
     }
 
     /**
-     * Get user_only_search
-     *
-     * @return boolean
-     */
-    public function getUserOnlySearch()
-    {
-        return $this->getDataFieldMeta()->getUserOnlySearch();
-    }
-
-    /**
      * Get publicDate
      *
      * @return \DateTime

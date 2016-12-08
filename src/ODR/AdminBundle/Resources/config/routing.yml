@@ -384,18 +384,20 @@ odr_design_load_theme_datafield:
         theme_id: \d+
 
 odr_design_save_theme_datafield:
-    path:  /design/displaytemplate/themedatafieldproperties/{theme_datafield_id}
+    path:  /design/displaytemplate/themedatafieldproperties/{theme_element_id}/{datafield_id}
     defaults: { _controller: ODRAdminBundle:Theme:savethemedatafield }
     methods: [POST]
     requirements:
-        theme_datafield_id: \d+
+        theme_element_id: \d+
+        datafield_id: \d+
 
 odr_design_save_theme_datatype:
-    path:  /design/displaytemplate/themedatatypeproperties/{theme_datatype_id}
+    path:  /design/displaytemplate/themedatatypeproperties/{theme_element_id}/{datatype_id}
     defaults: { _controller: ODRAdminBundle:Theme:savethemedatatype }
     methods: [POST]
     requirements:
-        theme_datatype_id: \d+
+        theme_element_id: \d+
+        datatype_id: \d+
 
 #-----------------------------------------
 
@@ -435,11 +437,10 @@ odr_design_get_datatype_properties:
         parent_datatype_id: \d+
 
 odr_design_save_datatree:
-    path:  /design/displaytemplate/savedatatree/{datatype_id}/{datatree_id}
+    path:  /design/displaytemplate/savedatatree/{datatree_id}
     defaults: { _controller: ODRAdminBundle:Displaytemplate:savedatatree }
     methods: [POST]
     requirements:
-        datatype_id: \d+
         datatree_id: \d+
 
 odr_design_get_link_datatypes:
@@ -577,7 +578,12 @@ odr_record_reload_datafield:
     requirements:
         datarecord_id: \d+
         datafield_id: \d+
-
+odr_record_reload_file_datafield:
+    path: /edit/filedatafieldreload/{datarecord_id}/{datafield_id}
+    defaults: { _controller: ODRAdminBundle:Edit:reloadfiledatafield }
+    requirements:
+        datarecord_id: \d+
+        datafield_id: \d+
 
 odr_record_save:
 #    path:  /edit/save/{record_type}/{datarecord_id}
@@ -708,12 +714,19 @@ odr_display_reload_datafield:
         datafield_id: \d+
         theme_id: \d+
 
+odr_file_download_start:
+    path:  /view/downloadfilestart/{file_id}
+    defaults: { _controller: ODRAdminBundle:Display:filedownloadstart }
+    requirements:
+        file_id:  \d+
+
 odr_file_download:
     path:  /view/downloadfile/{file_id}
     defaults: { _controller: ODRAdminBundle:Display:filedownload }
     requirements:
         file_id:  \d+
 
+# deprecated?
 odr_cancel_file_decrypt:
     path:  /view/downloadfile_cancel/{file_id}
     defaults: { _controller: ODRAdminBundle:Display:cancelfiledecrypt }
@@ -725,6 +738,27 @@ odr_image_download:
     defaults: { _controller: ODRAdminBundle:Display:imagedownload }
     requirements:
         image_id:  \d+
+
+odr_get_file_list:
+    path:  /view/file_list/{grandparent_datarecord_id}/{datarecord_id}/{datafield_id}
+    defaults: { _controller: ODRAdminBundle:Display:listallfiles, datarecord_id: 0, datafield_id: 0 }
+    requirements:
+        grandparent_datarecord_id: \d+
+        datarecord_id: \d+
+        datafield_id: \d+
+
+odr_start_zip_archive_download:
+    path:  /view/start_archive_build/{grandparent_datarecord_id}
+    defaults: { _controller: ODRAdminBundle:Display:startdownloadarchive }
+    methods: [ POST ]
+    requirements:
+        grandparent_datarecord_id: \d+
+
+odr_download_zip_archive:
+    path:  /view/zip_archive_download/{archive_filename}
+    defaults: { _controller: ODRAdminBundle:Display:downloadarchive }
+    requirements:
+        archive_filename: 0|[0-9a-zA-Z\-\_]{12}.zip
 
 #-----------------------------------------
 
@@ -1142,6 +1176,12 @@ odr_get_file_encrypt_progress:
     defaults: { _controller: ODRAdminBundle:Reports:getfileencryptprogress }
     requirements:
         file_id: \d+
+
+odr_get_zip_archive_progress:
+    path:  /view/zip_archive_progress/{archive_filename}
+    defaults: { _controller: ODRAdminBundle:Reports:getziparchiveprogress }
+    requirements:
+        archive_filename: 0|[0-9a-zA-Z\-\_]{12}.zip
 
 #-----------------------------------------
 

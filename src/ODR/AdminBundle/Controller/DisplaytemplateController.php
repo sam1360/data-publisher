@@ -1012,13 +1012,12 @@ class DisplaytemplateController extends ODRCustomController
     /**
      * Saves changes made to a Datatree entity.
      * 
-     * @param integer $datatype_id  The id of the DataType entity this Datatree belongs to
      * @param integer $datatree_id  The id of the Datatree entity being changed
      * @param Request $request
      * 
      * @return Response
      */
-    public function savedatatreeAction($datatype_id, $datatree_id, Request $request)
+    public function savedatatreeAction($datatree_id, Request $request)
     {
         $return = array();
         $return['r'] = 0;
@@ -1034,9 +1033,9 @@ class DisplaytemplateController extends ODRCustomController
             $datatree = $em->getRepository('ODRAdminBundle:DataTree')->find($datatree_id);
             if ($datatree == null)
                 return parent::deletedEntityError('Datatree');
-            /** @var DataType $datatype */
-            $datatype = $em->getRepository('ODRAdminBundle:DataType')->find($datatype_id);
-            if ($datatype == null)
+
+            $ancestor_datatype = $datatree->getAncestor();
+            if ($ancestor_datatype->getDeletedAt() != null)
                 return parent::deletedEntityError('Datatype');
 
             // --------------------
@@ -1047,7 +1046,7 @@ class DisplaytemplateController extends ODRCustomController
             $datatype_permissions = $user_permissions['datatypes'];
 
             // Ensure user has permissions to be doing this
-            if ( !(isset($datatype_permissions[ $datatype->getId() ]) && isset($datatype_permissions[ $datatype->getId() ][ 'dt_admin' ])) )
+            if ( !(isset($datatype_permissions[ $ancestor_datatype->getId() ]) && isset($datatype_permissions[ $ancestor_datatype->getId() ][ 'dt_admin' ])) )
                 return parent::permissionDeniedError("edit");
             // --------------------
 
@@ -1123,7 +1122,7 @@ class DisplaytemplateController extends ODRCustomController
                     $redis->del($redis_prefix.'.cached_datatree_array');
 
                     // TODO - modify cached version of datatype directly?
-                    parent::tmp_updateDatatypeCache($em, $datatype, $user);
+                    parent::tmp_updateDatatypeCache($em, $ancestor_datatype, $user);
                 }
                 else {
                     // Form validation failed
@@ -1131,7 +1130,6 @@ class DisplaytemplateController extends ODRCustomController
                     throw new \Exception($error_str);
                 }
             }
-
         }
         catch (\Exception $e) {
             $return['r'] = 1;
@@ -1223,6 +1221,14 @@ class DisplaytemplateController extends ODRCustomController
             if ( !(isset($datatype_permissions[ $datatype->getId() ]) && isset($datatype_permissions[ $datatype->getId() ][ 'dt_admin' ])) )
                 return parent::permissionDeniedError("edit");
             // --------------------
+
+
+            // ----------------------------------------
+            // Ensure there's not a child or linked datatype in this theme_element before going and creating a new datafield
+            /** @var ThemeDataType[] $theme_datatypes */
+            $theme_datatypes = $em->getRepository('ODRAdminBundle:ThemeDataType')->findBy( array('themeElement' => $theme_element_id) );
+            if ( count($theme_datatypes) > 0 )
+                throw new \Exception('Unable to add a Datafield into a ThemeElement that already has a child/linked Datatype');
 
 
             // ----------------------------------------
@@ -1346,8 +1352,7 @@ class DisplaytemplateController extends ODRCustomController
                 'radio_option_name_sort' => $old_datafield->getRadioOptionNameSort(),
                 'radio_option_display_unselected' => $old_datafield->getRadioOptionDisplayUnselected(),
                 'searchable' => $old_datafield->getSearchable(),
-                'user_only_search' => $old_datafield->getUserOnlySearch(),
-                'public_date' => $old_datafield->getPublicDate(),
+                'publicDate' => $old_datafield->getPublicDate(),
             );
             parent::ODR_copyDatafieldMeta($em, $user, $new_datafield, $properties);
 
@@ -1801,8 +1806,18 @@ class DisplaytemplateController extends ODRCustomController
                 return parent::permissionDeniedError("edit");
             // --------------------
 
+
+            // ----------------------------------------
+            // Ensure that this action isn't being called on a derivative theme
             if ($theme->getThemeType() !== 'master')
                 throw new \Exception('Unable to create a new child Datatype outside of the master Theme');
+
+            // Ensure there are no datafields in this theme_element before going and creating a child datatype
+            /** @var ThemeDataField[] $theme_datafields */
+            $theme_datafields = $em->getRepository('ODRAdminBundle:ThemeDataField')->findBy( array('themeElement' => $theme_element_id) );
+            if ( count($theme_datafields) > 0 )
+                throw new \Exception('Unable to add a child Datatype into a ThemeElement that already has Datafields');
+
 
             // ----------------------------------------
             // Defaults
@@ -1993,10 +2008,20 @@ class DisplaytemplateController extends ODRCustomController
                 return parent::permissionDeniedError("edit");
             // --------------------
 
+
+            // ----------------------------------------
+            // Ensure that this action isn't being called on a derivative theme
             if ($theme->getThemeType() !== 'master')
                 throw new \Exception('Unable to link to a remote Datatype outside of the master Theme');
 
+            // Ensure there are no datafields in this theme_element before attempting to link to a remote datatype
+            /** @var ThemeDataField[] $theme_datafields */
+            $theme_datafields = $em->getRepository('ODRAdminBundle:ThemeDataField')->findBy( array('themeElement' => $theme_element_id) );
+            if ( count($theme_datafields) > 0 )
+                throw new \Exception('Unable to link a remote Datatype into a ThemeElement that already has Datafields');
 
+
+            // ----------------------------------------
             // Locate the previously linked datatype if it exists
             /** @var DataType|null $current_remote_datatype */
             $has_linked_datarecords = false;
@@ -2102,6 +2127,19 @@ class DisplaytemplateController extends ODRCustomController
 
 
             // ----------------------------------------
+            // Need to display a warning when the potential remote datatype doesn't have a table theme
+            $datatypes_with_table_themes = array();
+            foreach ($linkable_datatypes as $l_dt) {
+                foreach ($l_dt->getThemes() as $t) {
+                    /** @var Theme $t */
+                    if ($t->getThemeType() == 'table')
+                        $datatypes_with_table_themes[ $l_dt->getId() ] = 1;
+                }
+            }
+//print '<pre>'.print_r($datatypes_with_table_themes, true).'</pre>';  exit();
+
+
+            // ----------------------------------------
             // Get Templating Object
             $templating = $this->get('templating');
             $return['d'] = array(
@@ -2114,6 +2152,7 @@ class DisplaytemplateController extends ODRCustomController
                         'linkable_datatypes' => $linkable_datatypes,
 
                         'has_linked_datarecords' => $has_linked_datarecords,
+                        'datatypes_with_table_themes' => $datatypes_with_table_themes,
                     )
                 )
             );
@@ -2212,8 +2251,17 @@ class DisplaytemplateController extends ODRCustomController
                 return parent::permissionDeniedError('edit');
             // --------------------
 
+
+            // ----------------------------------------
+            // Ensure that this action isn't being called on a derivative theme
             if ($theme->getThemeType() !== 'master')
                 throw new \Exception('Unable to link to a remote Datatype outside of the master Theme');
+
+            // Ensure there are no datafields in this theme_element before attempting to link to a remote datatype
+            /** @var ThemeDataField[] $theme_datafields */
+            $theme_datafields = $em->getRepository('ODRAdminBundle:ThemeDataField')->findBy( array('themeElement' => $theme_element_id) );
+            if ( count($theme_datafields) > 0 )
+                throw new \Exception('Unable to link a remote Datatype into a ThemeElement that already has Datafields');
 
 
             // ----------------------------------------
@@ -3122,6 +3170,21 @@ class DisplaytemplateController extends ODRCustomController
                 $em->flush();
 
                 // Don't need to worry about datafield permissions here, those are taken care of inside ODR_addDataField()
+/*
+                // TODO Make this only flush affected users - this is inefficient.
+                // Since new datafields were created, wipe datafield permission entries for all users
+                $redis = $this->container->get('snc_redis.default');;
+                // $redis->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_PHP);
+                $redis_prefix = $this->container->getParameter('memcached_key_prefix');
+
+                $user_manager = $this->container->get('fos_user.user_manager');
+                $user_list = $user_manager->findUsers();
+                foreach ($user_list as $u) {
+                    $redis->del($redis_prefix.'.user_'.$u->getId().'_datafield_permissions');
+
+                    // TODO - schedule a permissions recache via beanstalk?
+                }
+*/
             }
 
 
@@ -4496,8 +4559,7 @@ class DisplaytemplateController extends ODRCustomController
                         'radio_option_name_sort' => $submitted_data->getRadioOptionNameSort(),
                         'radio_option_display_unselected' => $submitted_data->getRadioOptionDisplayUnselected(),
                         'searchable' => $submitted_data->getSearchable(),
-                        'user_only_search' => $submitted_data->getUserOnlySearch(),
-                        'public_date' => $submitted_data->getPublicDate(),
+                        'publicDate' => $submitted_data->getPublicDate(),
                     );
                     parent::ODR_copyDatafieldMeta($em, $user, $datafield, $properties);
 
