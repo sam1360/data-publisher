@@ -53,6 +53,7 @@ class DataTypeMeta
     private $xml_shortName;
 
     /**
+     * @deprecated
      * @var boolean
      */
     private $useShortResults;
@@ -244,6 +245,7 @@ class DataTypeMeta
     }
 
     /**
+     * @deprecated
      * Set useShortResults
      *
      * @param boolean $useShortResults
@@ -257,6 +259,7 @@ class DataTypeMeta
     }
 
     /**
+     * @deprecated
      * Get useShortResults
      *
      * @return boolean 

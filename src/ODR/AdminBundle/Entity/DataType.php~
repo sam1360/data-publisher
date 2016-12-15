@@ -32,11 +32,13 @@ class DataType
     private $revision;
 
     /**
+     * @deprecated
      * @var boolean
      */
     private $has_shortresults;
 
     /**
+     * @deprecated
      * @var boolean
      */
     private $has_textresults;
@@ -79,6 +81,11 @@ class DataType
     /**
      * @var \Doctrine\Common\Collections\Collection
      */
+    private $layouts;
+
+    /**
+     * @var \Doctrine\Common\Collections\Collection
+     */
     private $groups;
 
     /**
@@ -111,6 +118,7 @@ class DataType
         $this->themeDataType = new \Doctrine\Common\Collections\ArrayCollection();
         $this->dataFields = new \Doctrine\Common\Collections\ArrayCollection();
         $this->themes = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->layouts = new \Doctrine\Common\Collections\ArrayCollection();
         $this->groups = new \Doctrine\Common\Collections\ArrayCollection();
     }
 
@@ -148,6 +156,7 @@ class DataType
     }
 
     /**
+     * @deprecated
      * Set has_shortresults
      *
      * @param boolean $hasShortresults
@@ -161,6 +170,7 @@ class DataType
     }
 
     /**
+     * @deprecated
      * Get has_shortresults
      *
      * @return boolean 
@@ -171,6 +181,7 @@ class DataType
     }
 
     /**
+     * @deprecated
      * Set has_textresults
      *
      * @param boolean $hasTextresults
@@ -184,6 +195,7 @@ class DataType
     }
 
     /**
+     * @deprecated
      * Get has_textresults
      *
      * @return boolean 
@@ -392,6 +404,39 @@ class DataType
     public function getThemes()
     {
         return $this->themes;
+    }
+
+    /**
+     * Add layouts
+     *
+     * @param \ODR\AdminBundle\Entity\Layout $layouts
+     * @return DataType
+     */
+    public function addLayout(\ODR\AdminBundle\Entity\Layout $layouts)
+    {
+        $this->layouts[] = $layouts;
+
+        return $this;
+    }
+
+    /**
+     * Remove layouts
+     *
+     * @param \ODR\AdminBundle\Entity\Layout $layouts
+     */
+    public function removeLayout(\ODR\AdminBundle\Entity\Layout $layouts)
+    {
+        $this->layouts->removeElement($layouts);
+    }
+
+    /**
+     * Get layouts
+     *
+     * @return \Doctrine\Common\Collections\Collection
+     */
+    public function getLayouts()
+    {
+        return $this->layouts;
     }
 
     /**

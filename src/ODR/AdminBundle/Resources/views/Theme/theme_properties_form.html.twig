@@ -37,7 +37,15 @@
                 {{ form_widget(theme_form.isDefault, { 'attr': {'style': 'width:auto'} }) }}
             {% endif %}
         </div>
-
+{#
+        <div class="pure-control-group">
+            <label for="{{ theme_form.isOfficial.vars.id }}">
+                <strong>{{ theme_form.isOfficial.vars.label }}</strong>
+            </label>
+            {{ form_errors(theme_form.isOfficial) }}
+            {{ form_widget(theme_form.isOfficial, { 'attr': {'style': 'width:auto'} }) }}
+        </div>
+#}
         <div style="display: none">
         {{ form_rest(theme_form) }}
         </div>

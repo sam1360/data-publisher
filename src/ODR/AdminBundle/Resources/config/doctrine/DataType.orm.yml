@@ -20,11 +20,13 @@ ODR\AdminBundle\Entity\DataType:
             default: 0
             column: revision
 
+        # deprecated
         has_shortresults:
             type: boolean
             nullable: false
             default: false
             column: has_shortresults
+        # deprecated
         has_textresults:
             type: boolean
             nullable: false
@@ -125,6 +127,16 @@ ODR\AdminBundle\Entity\DataType:
             inversedBy: null
             joinColumns:
                 theme_id:
+                    referencedColumnName: id
+            orphanRemoval: false
+
+        layouts:
+            targetEntity: Layout
+            cascade: { }
+            mappedBy: dataType
+            inversedBy: null
+            joinColumns:
+                layout_id:
                     referencedColumnName: id
             orphanRemoval: false
 

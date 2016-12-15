@@ -4045,6 +4045,7 @@ if ($debug)
             'templateName' => $old_meta_entry->getTemplateName(),
             'templateDescription' => $old_meta_entry->getTemplateDescription(),
             'isDefault' => $old_meta_entry->getIsDefault(),
+            'isOfficial' => $old_meta_entry->getIsOfficial(),
         );
         foreach ($existing_values as $key => $value) {
             if ( isset($properties[$key]) && $properties[$key] != $value )
@@ -4068,6 +4069,7 @@ if ($debug)
             $new_theme_meta->setTemplateName( $old_meta_entry->getTemplateName() );
             $new_theme_meta->setTemplateDescription( $old_meta_entry->getTemplateDescription() );
             $new_theme_meta->setIsDefault( $old_meta_entry->getIsDefault() );
+            $new_theme_meta->setIsOfficial( $old_meta_entry->getIsOfficial() );
 
             $new_theme_meta->setCreatedBy($user);
         }
@@ -4084,6 +4086,8 @@ if ($debug)
             $new_theme_meta->setTemplateDescription( $properties['templateDescription'] );
         if ( isset($properties['isDefault']) )
             $new_theme_meta->setIsDefault( $properties['isDefault'] );
+        if ( isset($properties['isOfficial']) )
+            $new_theme_meta->setIsOfficial( $properties['isOfficial'] );
 
         $new_theme_meta->setUpdatedBy($user);
 

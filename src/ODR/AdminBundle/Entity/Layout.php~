@@ -2,13 +2,13 @@
 
 /**
  * Open Data Repository Data Publisher
- * Theme Entity
+ * Layout Entity
  * (C) 2015 by Nathan Stone (nate.stone@opendatarepository.org)
  * (C) 2015 by Alex Pires (ajpires@email.arizona.edu)
  * Released under the GPLv2
  *
- * The Theme Entity is automatically generated from
- * ./Resources/config/doctrine/Theme.orm.yml
+ * The Layout Entity is automatically generated from
+ * ./Resources/config/doctrine/Layout.orm.yml
  *
  */
 
@@ -17,9 +17,9 @@ namespace ODR\AdminBundle\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Theme
+ * Layout
  */
-class Theme
+class Layout
 {
     /**
      * @var integer
@@ -27,9 +27,9 @@ class Theme
     private $id;
 
     /**
-     * @var string
+     * @var boolean
      */
-    private $themeType;
+    private $isTableLayout;
 
     /**
      * @var \DateTime
@@ -49,17 +49,17 @@ class Theme
     /**
      * @var \Doctrine\Common\Collections\Collection
      */
-    private $themeMeta;
-
-    /**
-     * @var \Doctrine\Common\Collections\Collection
-     */
-    private $themeElements;
+    private $layoutMeta;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
      */
     private $layoutData;
+
+    /**
+     * @var \Doctrine\Common\Collections\Collection
+     */
+    private $userLayoutPreferences;
 
     /**
      * @var \ODR\AdminBundle\Entity\DataType
@@ -86,9 +86,9 @@ class Theme
      */
     public function __construct()
     {
-        $this->themeMeta = new \Doctrine\Common\Collections\ArrayCollection();
-        $this->themeElements = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->layoutMeta = new \Doctrine\Common\Collections\ArrayCollection();
         $this->layoutData = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->userLayoutPreferences = new \Doctrine\Common\Collections\ArrayCollection();
     }
 
     /**
@@ -102,33 +102,33 @@ class Theme
     }
 
     /**
-     * Set themeType
+     * Set isTableLayout
      *
-     * @param string $themeType
-     * @return Theme
+     * @param boolean $isTableLayout
+     * @return Layout
      */
-    public function setThemeType($themeType)
+    public function setIsTableLayout($isTableLayout)
     {
-        $this->themeType = $themeType;
+        $this->isTableLayout = $isTableLayout;
 
         return $this;
     }
 
     /**
-     * Get themeType
+     * Get isTableLayout
      *
-     * @return string 
+     * @return boolean
      */
-    public function getThemeType()
+    public function getIsTableLayout()
     {
-        return $this->themeType;
+        return $this->isTableLayout;
     }
 
     /**
      * Set created
      *
      * @param \DateTime $created
-     * @return Theme
+     * @return Layout
      */
     public function setCreated($created)
     {
@@ -151,7 +151,7 @@ class Theme
      * Set updated
      *
      * @param \DateTime $updated
-     * @return Theme
+     * @return Layout
      */
     public function setUpdated($updated)
     {
@@ -174,7 +174,7 @@ class Theme
      * Set deletedAt
      *
      * @param \DateTime $deletedAt
-     * @return Theme
+     * @return Layout
      */
     public function setDeletedAt($deletedAt)
     {
@@ -194,76 +194,43 @@ class Theme
     }
 
     /**
-     * Add themeMeta
+     * Add layoutMeta
      *
-     * @param \ODR\AdminBundle\Entity\ThemeMeta $themeMeta
-     * @return Theme
+     * @param \ODR\AdminBundle\Entity\LayoutMeta $layoutMeta
+     * @return Layout
      */
-    public function addThemeMetum(\ODR\AdminBundle\Entity\ThemeMeta $themeMeta)
+    public function addLayoutMetum(\ODR\AdminBundle\Entity\LayoutMeta $layoutMeta)
     {
-        $this->themeMeta[] = $themeMeta;
+        $this->layoutMeta[] = $layoutMeta;
 
         return $this;
     }
 
     /**
-     * Remove themeMeta
+     * Remove layoutMeta
      *
-     * @param \ODR\AdminBundle\Entity\ThemeMeta $themeMeta
+     * @param \ODR\AdminBundle\Entity\LayoutMeta $layoutMeta
      */
-    public function removeThemeMetum(\ODR\AdminBundle\Entity\ThemeMeta $themeMeta)
+    public function removeLayoutMetum(\ODR\AdminBundle\Entity\LayoutMeta $layoutMeta)
     {
-        $this->themeMeta->removeElement($themeMeta);
+        $this->layoutMeta->removeElement($layoutMeta);
     }
 
     /**
-     * Get themeMeta
+     * Get layoutMeta
      *
-     * @return \ODR\AdminBundle\Entity\ThemeMeta
+     * @return \ODR\AdminBundle\Entity\LayoutMeta
      */
-    public function getThemeMeta()
+    public function getLayoutMeta()
     {
-        return $this->themeMeta->first();
-    }
-
-    /**
-     * Add themeElements
-     *
-     * @param \ODR\AdminBundle\Entity\ThemeElement $themeElements
-     * @return Theme
-     */
-    public function addThemeElement(\ODR\AdminBundle\Entity\ThemeElement $themeElements)
-    {
-        $this->themeElements[] = $themeElements;
-
-        return $this;
-    }
-
-    /**
-     * Remove themeElements
-     *
-     * @param \ODR\AdminBundle\Entity\ThemeElement $themeElements
-     */
-    public function removeThemeElement(\ODR\AdminBundle\Entity\ThemeElement $themeElements)
-    {
-        $this->themeElements->removeElement($themeElements);
-    }
-
-    /**
-     * Get themeElements
-     *
-     * @return \Doctrine\Common\Collections\Collection 
-     */
-    public function getThemeElements()
-    {
-        return $this->themeElements;
+        return $this->layoutMeta->first();
     }
 
     /**
      * Add layoutData
      *
      * @param \ODR\AdminBundle\Entity\LayoutData $layoutData
-     * @return Theme
+     * @return Layout
      */
     public function addLayoutDatum(\ODR\AdminBundle\Entity\LayoutData $layoutData)
     {
@@ -285,7 +252,7 @@ class Theme
     /**
      * Get layoutData
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return \Doctrine\Common\Collections\Collection 
      */
     public function getLayoutData()
     {
@@ -293,10 +260,44 @@ class Theme
     }
 
     /**
+     * Add userLayoutPreference
+     *
+     * @param \ODR\AdminBundle\Entity\UserLayoutPreferences $userLayoutPreference
+     *
+     * @return Layout
+     */
+    public function addUserLayoutPreference(\ODR\AdminBundle\Entity\UserLayoutPreferences $userLayoutPreference)
+    {
+        $this->userLayoutPreferences[] = $userLayoutPreference;
+
+        return $this;
+    }
+
+    /**
+     * Remove userLayoutPreference
+     *
+     * @param \ODR\AdminBundle\Entity\UserLayoutPreferences $userLayoutPreference
+     */
+    public function removeUserLayoutPreference(\ODR\AdminBundle\Entity\UserLayoutPreferences $userLayoutPreference)
+    {
+        $this->userLayoutPreferences->removeElement($userLayoutPreference);
+    }
+
+    /**
+     * Get userLayoutPreferences
+     *
+     * @return \Doctrine\Common\Collections\Collection
+     */
+    public function getUserLayoutPreferences()
+    {
+        return $this->userLayoutPreferences;
+    }
+
+    /**
      * Set dataType
      *
      * @param \ODR\AdminBundle\Entity\DataType $dataType
-     * @return Theme
+     * @return Layout
      */
     public function setDataType(\ODR\AdminBundle\Entity\DataType $dataType = null)
     {
@@ -319,7 +320,7 @@ class Theme
      * Set createdBy
      *
      * @param \ODR\OpenRepository\UserBundle\Entity\User $createdBy
-     * @return Theme
+     * @return Layout
      */
     public function setCreatedBy(\ODR\OpenRepository\UserBundle\Entity\User $createdBy = null)
     {
@@ -342,7 +343,7 @@ class Theme
      * Set updatedBy
      *
      * @param \ODR\OpenRepository\UserBundle\Entity\User $updatedBy
-     * @return Theme
+     * @return Layout
      */
     public function setUpdatedBy(\ODR\OpenRepository\UserBundle\Entity\User $updatedBy = null)
     {
@@ -365,7 +366,7 @@ class Theme
      * Set deletedBy
      *
      * @param \ODR\OpenRepository\UserBundle\Entity\User $deletedBy
-     * @return Theme
+     * @return Layout
      */
     public function setDeletedBy(\ODR\OpenRepository\UserBundle\Entity\User $deletedBy = null)
     {
@@ -384,45 +385,87 @@ class Theme
         return $this->deletedBy;
     }
 
-
     /**
-     * Get templateName
-     *
-     * @return string
-     */
-    public function getTemplateName()
-    {
-        return $this->getThemeMeta()->getTemplateName();
-    }
-
-    /**
-     * Get templateDescription
-     *
-     * @return string
-     */
-    public function getTemplateDescription()
-    {
-        return $this->getThemeMeta()->getTemplateDescription();
-    }
-
-    /**
-     * @deprecated
-     * Get isDefault
+     * Is public
      *
      * @return boolean
      */
-    public function getIsDefault()
+    public function isPublic()
     {
-        return $this->getThemeMeta()->getIsDefault();
+        if ($this->getPublicDate()->format('Y-m-d H:i:s') == '2200-01-01 00:00:00')
+            return false;
+        else
+            return true;
+    }
+
+
+    /**
+     * Get LayoutName
+     *
+     * @return string
+     */
+    public function getLayoutName()
+    {
+        return $this->getLayoutMeta()->getLayoutName();
+    }
+
+    /**
+     * Get LayoutDescription
+     *
+     * @return string
+     */
+    public function getLayoutDescription()
+    {
+        return $this->getLayoutMeta()->getLayoutDescription();
+    }
+
+    /**
+     * Get publicDate
+     *
+     * @return \DateTime
+     */
+    public function getPublicDate()
+    {
+        return $this->getLayoutMeta()->getPublicDate();
     }
 
     /**
      * Get isOfficial
-     *
-     * @return boolean
+     * 
+     * @return bool
      */
     public function getIsOfficial()
     {
-        return $this->getThemeMeta()->getIsOfficial();
+        return $this->getLayoutMeta()->getIsOfficial();
+    }
+
+    /**
+     * Get isSearchDefault
+     *
+     * @return bool
+     */
+    public function getIsSearchDefault()
+    {
+        return $this->getLayoutMeta()->getIsSearchDefault();
+    }
+
+    /**
+     * Get isViewDefault
+     *
+     * @return bool
+     */
+    public function getIsViewDefault()
+    {
+        return $this->getLayoutMeta()->getIsViewDefault();
+    }
+
+    /**
+     * Get isEditDefault
+     *
+     * @return bool
+     */
+    public function getIsEditDefault()
+    {
+        return $this->getLayoutMeta()->getIsEditDefault();
     }
 }

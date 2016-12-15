@@ -1,6 +1,6 @@
-ODR\AdminBundle\Entity\ThemeDataType:
+ODR\AdminBundle\Entity\LayoutData:
     type: entity
-    table: odr_theme_data_type
+    table: odr_layout_data
     gedmo:
         soft_deleteable:
             field_name: deletedAt
@@ -13,7 +13,6 @@ ODR\AdminBundle\Entity\ThemeDataType:
             generator:
                 strategy: IDENTITY
 
-        # deprecated
         display_type:
             type: integer
             nullable: false
@@ -35,24 +34,34 @@ ODR\AdminBundle\Entity\ThemeDataType:
             nullable: true
 
     manyToOne:
-        dataType:
-            targetEntity: DataType
+        layout:
+            targetEntity: Layout
             cascade: {  }
             mappedBy: null
-            inversedBy: themeDataType
+            inversedBy: layoutData
             joinColumns:
-                data_type_id:
-                    nullable: false
+                layout_id:
                     referencedColumnName: id
             orphanRemoval: false
 
-        themeElement:
-            targetEntity: ThemeElement
+        theme:
+            targetEntity: Theme
             cascade: {  }
             mappedBy: null
-            inversedBy: themeDataType
+            inversedBy: layoutData
             joinColumns:
-                theme_element_id:
+                theme_id:
+                    referencedColumnName: id
+            orphanRemoval: false
+
+        dataTree:
+            targetEntity: DataTree
+            cascade: {  }
+            mappedBy: null
+            inversedBy: layoutData
+            joinColumns:
+                data_tree_id:
+                    nullable: true
                     referencedColumnName: id
             orphanRemoval: false
 

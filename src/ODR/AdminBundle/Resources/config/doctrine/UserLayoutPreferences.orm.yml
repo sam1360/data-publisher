@@ -1,6 +1,6 @@
-ODR\AdminBundle\Entity\ThemeDataType:
+ODR\AdminBundle\Entity\UserLayoutPreferences:
     type: entity
-    table: odr_theme_data_type
+    table: odr_user_layout_preferences
     gedmo:
         soft_deleteable:
             field_name: deletedAt
@@ -13,12 +13,22 @@ ODR\AdminBundle\Entity\ThemeDataType:
             generator:
                 strategy: IDENTITY
 
-        # deprecated
-        display_type:
-            type: integer
+        isHidden:
+            type: boolean
             nullable: false
-            default: 0
-            column: display_type
+            column: is_hidden
+        isSearchDefault:
+            type: boolean
+            nullable: false
+            column: is_search_default
+        isViewDefault:
+            type: boolean
+            nullable: false
+            column: is_view_default
+        isEditDefault:
+            type: boolean
+            nullable: false
+            column: is_edit_default
 
         created:
             type: datetime
@@ -35,24 +45,22 @@ ODR\AdminBundle\Entity\ThemeDataType:
             nullable: true
 
     manyToOne:
-        dataType:
-            targetEntity: DataType
+        user:
+            targetEntity: ODR\OpenRepository\UserBundle\Entity\User
             cascade: {  }
             mappedBy: null
-            inversedBy: themeDataType
+            inversedBy: null
             joinColumns:
-                data_type_id:
-                    nullable: false
+                user_id:
                     referencedColumnName: id
             orphanRemoval: false
-
-        themeElement:
-            targetEntity: ThemeElement
+        layout:
+            targetEntity: Layout
             cascade: {  }
             mappedBy: null
-            inversedBy: themeDataType
+            inversedBy: userLayoutPreferences
             joinColumns:
-                theme_element_id:
+                layout_id:
                     referencedColumnName: id
             orphanRemoval: false
 
@@ -61,6 +69,7 @@ ODR\AdminBundle\Entity\ThemeDataType:
             cascade: {  }
             mappedBy: null
             inversedBy: null
+            fetch: LAZY
             joinColumns:
                 createdBy:
                     referencedColumnName: id
@@ -70,6 +79,7 @@ ODR\AdminBundle\Entity\ThemeDataType:
             cascade: {  }
             mappedBy: null
             inversedBy: null
+            fetch: LAZY
             joinColumns:
                 updatedBy:
                     referencedColumnName: id
@@ -79,6 +89,7 @@ ODR\AdminBundle\Entity\ThemeDataType:
             cascade: {  }
             mappedBy: null
             inversedBy: null
+            fetch: LAZY
             joinColumns:
                 deletedBy:
                     referencedColumnName: id

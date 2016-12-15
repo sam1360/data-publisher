@@ -27,6 +27,7 @@ class ThemeDataType
     private $id;
 
     /**
+     * @deprecated
      * @var integer
      */
     private $display_type;
@@ -83,6 +84,7 @@ class ThemeDataType
     }
 
     /**
+     * @deprecated
      * Set display_type
      *
      * @param integer $displayType
@@ -96,6 +98,7 @@ class ThemeDataType
     }
 
     /**
+     * @deprecated
      * Get display_type
      *
      * @return integer 

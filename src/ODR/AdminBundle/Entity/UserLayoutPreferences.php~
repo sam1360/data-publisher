@@ -2,13 +2,13 @@
 
 /**
  * Open Data Repository Data Publisher
- * ThemeDataType Entity
+ * UserLayoutPreferences Entity
  * (C) 2015 by Nathan Stone (nate.stone@opendatarepository.org)
  * (C) 2015 by Alex Pires (ajpires@email.arizona.edu)
  * Released under the GPLv2
  *
- * The ThemeDataType Entity is automatically generated from
- * ./Resources/config/doctrine/ThemeDataType.orm.yml
+ * The UserLayoutPreferences Entity is automatically generated from
+ * ./Resources/config/doctrine/UserLayoutPreferences.orm.yml
  *
  */
 
@@ -17,9 +17,9 @@ namespace ODR\AdminBundle\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * ThemeDataType
+ * UserLayoutPreferences
  */
-class ThemeDataType
+class UserLayoutPreferences
 {
     /**
      * @var integer
@@ -27,10 +27,24 @@ class ThemeDataType
     private $id;
 
     /**
-     * @deprecated
-     * @var integer
+     * @var boolean
      */
-    private $display_type;
+    private $isHidden;
+
+    /**
+     * @var boolean
+     */
+    private $isSearchDefault;
+
+    /**
+     * @var boolean
+     */
+    private $isViewDefault;
+
+    /**
+     * @var boolean
+     */
+    private $isEditDefault;
 
     /**
      * @var \DateTime
@@ -48,14 +62,14 @@ class ThemeDataType
     private $deletedAt;
 
     /**
-     * @var \ODR\AdminBundle\Entity\DataType
+     * @var \ODR\OpenRepository\UserBundle\Entity\User
      */
-    private $dataType;
+    private $user;
 
     /**
-     * @var \ODR\AdminBundle\Entity\ThemeElement
+     * @var \ODR\AdminBundle\Entity\Layout
      */
-    private $themeElement;
+    private $layout;
 
     /**
      * @var \ODR\OpenRepository\UserBundle\Entity\User
@@ -71,12 +85,12 @@ class ThemeDataType
      * @var \ODR\OpenRepository\UserBundle\Entity\User
      */
     private $deletedBy;
-    
+
 
     /**
      * Get id
      *
-     * @return integer 
+     * @return integer
      */
     public function getId()
     {
@@ -84,35 +98,103 @@ class ThemeDataType
     }
 
     /**
-     * @deprecated
-     * Set display_type
+     * Set isHidden
      *
-     * @param integer $displayType
-     * @return ThemeDataType
+     * @param boolean $isHidden
+     * @return UserLayoutPreferences
      */
-    public function setDisplayType($displayType)
+    public function setIsHidden($isHidden)
     {
-        $this->display_type = $displayType;
+        $this->isHidden = $isHidden;
 
         return $this;
     }
 
     /**
-     * @deprecated
-     * Get display_type
+     * Get isHidden
      *
-     * @return integer 
+     * @return boolean
      */
-    public function getDisplayType()
+    public function getIsHidden()
     {
-        return $this->display_type;
+        return $this->isHidden;
     }
 
+    /**
+     * Set isSearchDefault
+     *
+     * @param boolean $isSearchDefault
+     * @return UserLayoutPreferences
+     */
+    public function setIsSearchDefault($isSearchDefault)
+    {
+        $this->isSearchDefault = $isSearchDefault;
+
+        return $this;
+    }
+
+    /**
+     * Get isSearchDefault
+     *
+     * @return boolean
+     */
+    public function getIsSearchDefault()
+    {
+        return $this->isSearchDefault;
+    }
+
+    /**
+     * Set isViewDefault
+     *
+     * @param boolean $isViewDefault
+     * @return UserLayoutPreferences
+     */
+    public function setIsViewDefault($isViewDefault)
+    {
+        $this->isViewDefault = $isViewDefault;
+
+        return $this;
+    }
+
+    /**
+     * Get isViewDefault
+     *
+     * @return boolean
+     */
+    public function getIsViewDefault()
+    {
+        return $this->isViewDefault;
+    }
+
+    /**
+     * Set isEditDefault
+     *
+     * @param boolean $isEditDefault
+     * @return UserLayoutPreferences
+     */
+    public function setIsEditDefault($isEditDefault)
+    {
+        $this->isEditDefault = $isEditDefault;
+
+        return $this;
+    }
+
+    /**
+     * Get isEditDefault
+     *
+     * @return boolean
+     */
+    public function getIsEditDefault()
+    {
+        return $this->isEditDefault;
+    }
+    
     /**
      * Set created
      *
      * @param \DateTime $created
-     * @return ThemeDataType
+     *
+     * @return UserLayoutPreferences
      */
     public function setCreated($created)
     {
@@ -124,7 +206,7 @@ class ThemeDataType
     /**
      * Get created
      *
-     * @return \DateTime 
+     * @return \DateTime
      */
     public function getCreated()
     {
@@ -135,7 +217,7 @@ class ThemeDataType
      * Set updated
      *
      * @param \DateTime $updated
-     * @return ThemeDataType
+     * @return UserLayoutPreferences
      */
     public function setUpdated($updated)
     {
@@ -158,7 +240,8 @@ class ThemeDataType
      * Set deletedAt
      *
      * @param \DateTime $deletedAt
-     * @return ThemeDataType
+     *
+     * @return UserLayoutPreferences
      */
     public function setDeletedAt($deletedAt)
     {
@@ -170,7 +253,7 @@ class ThemeDataType
     /**
      * Get deletedAt
      *
-     * @return \DateTime 
+     * @return \DateTime
      */
     public function getDeletedAt()
     {
@@ -178,56 +261,59 @@ class ThemeDataType
     }
 
     /**
-     * Set dataType
+     * Set user
      *
-     * @param \ODR\AdminBundle\Entity\DataType $dataType
-     * @return ThemeDataType
+     * @param \ODR\OpenRepository\UserBundle\Entity\User $user
+     *
+     * @return UserLayoutPreferences
      */
-    public function setDataType(\ODR\AdminBundle\Entity\DataType $dataType)
+    public function setUser(\ODR\OpenRepository\UserBundle\Entity\User $user = null)
     {
-        $this->dataType = $dataType;
+        $this->user = $user;
 
         return $this;
     }
 
     /**
-     * Get dataType
+     * Get user
      *
-     * @return \ODR\AdminBundle\Entity\DataType 
+     * @return \ODR\OpenRepository\UserBundle\Entity\User
      */
-    public function getDataType()
+    public function getUser()
     {
-        return $this->dataType;
+        return $this->user;
     }
 
     /**
-     * Set themeElement
+     * Set layout
      *
-     * @param \ODR\AdminBundle\Entity\ThemeElement $themeElement
-     * @return ThemeDataType
+     * @param \ODR\AdminBundle\Entity\Layout $layout
+     *
+     * @return UserLayoutPreferences
      */
-    public function setThemeElement(\ODR\AdminBundle\Entity\ThemeElement $themeElement = null)
+    public function setLayout(\ODR\AdminBundle\Entity\Layout $layout = null)
     {
-        $this->themeElement = $themeElement;
+        $this->layout = $layout;
 
         return $this;
     }
 
     /**
-     * Get themeElement
+     * Get layout
      *
-     * @return \ODR\AdminBundle\Entity\ThemeElement 
+     * @return \ODR\AdminBundle\Entity\Layout
      */
-    public function getThemeElement()
+    public function getLayout()
     {
-        return $this->themeElement;
+        return $this->layout;
     }
 
     /**
      * Set createdBy
      *
      * @param \ODR\OpenRepository\UserBundle\Entity\User $createdBy
-     * @return ThemeDataType
+     *
+     * @return UserLayoutPreferences
      */
     public function setCreatedBy(\ODR\OpenRepository\UserBundle\Entity\User $createdBy = null)
     {
@@ -239,7 +325,7 @@ class ThemeDataType
     /**
      * Get createdBy
      *
-     * @return \ODR\OpenRepository\UserBundle\Entity\User 
+     * @return \ODR\OpenRepository\UserBundle\Entity\User
      */
     public function getCreatedBy()
     {
@@ -250,7 +336,7 @@ class ThemeDataType
      * Set updatedBy
      *
      * @param \ODR\OpenRepository\UserBundle\Entity\User $updatedBy
-     * @return ThemeDataType
+     * @return UserLayoutPreferences
      */
     public function setUpdatedBy(\ODR\OpenRepository\UserBundle\Entity\User $updatedBy = null)
     {
@@ -273,7 +359,8 @@ class ThemeDataType
      * Set deletedBy
      *
      * @param \ODR\OpenRepository\UserBundle\Entity\User $deletedBy
-     * @return ThemeDataType
+     *
+     * @return UserLayoutPreferences
      */
     public function setDeletedBy(\ODR\OpenRepository\UserBundle\Entity\User $deletedBy = null)
     {

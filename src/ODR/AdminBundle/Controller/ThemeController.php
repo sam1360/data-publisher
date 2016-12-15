@@ -289,6 +289,7 @@ class ThemeController extends ODRCustomController
             $theme_meta->setTemplateName('');
             $theme_meta->setTemplateDescription('');
             $theme_meta->setIsDefault($is_default);
+            $theme_meta->setIsOfficial(true);
 
             $theme_meta->setCreatedBy($user);
             $theme_meta->setUpdatedBy($user);
@@ -599,6 +600,7 @@ class ThemeController extends ODRCustomController
                         'templateName' => $submitted_data->getTemplateName(),
                         'templateDescription' => $submitted_data->getTemplateDescription(),
                         'isDefault' => $submitted_data->getIsDefault(),
+                        'isOfficial' => $submitted_data->getIsOfficial(),
                     );
                     parent::ODR_copyThemeMeta($em, $user, $theme, $properties);
 

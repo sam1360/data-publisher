@@ -57,6 +57,11 @@ class Theme
     private $themeElements;
 
     /**
+     * @var \Doctrine\Common\Collections\Collection
+     */
+    private $layoutData;
+
+    /**
      * @var \ODR\AdminBundle\Entity\DataType
      */
     private $dataType;
@@ -83,6 +88,7 @@ class Theme
     {
         $this->themeMeta = new \Doctrine\Common\Collections\ArrayCollection();
         $this->themeElements = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->layoutData = new \Doctrine\Common\Collections\ArrayCollection();
     }
 
     /**
@@ -254,6 +260,39 @@ class Theme
     }
 
     /**
+     * Add layoutData
+     *
+     * @param \ODR\AdminBundle\Entity\LayoutData $layoutData
+     * @return Theme
+     */
+    public function addLayoutDatum(\ODR\AdminBundle\Entity\LayoutData $layoutData)
+    {
+        $this->layoutData[] = $layoutData;
+
+        return $this;
+    }
+
+    /**
+     * Remove layoutData
+     *
+     * @param \ODR\AdminBundle\Entity\LayoutData $layoutData
+     */
+    public function removeLayoutDatum(\ODR\AdminBundle\Entity\LayoutData $layoutData)
+    {
+        $this->layoutData->removeElement($layoutData);
+    }
+
+    /**
+     * Get layoutData
+     *
+     * @return \Doctrine\Common\Collections\Collection
+     */
+    public function getLayoutData()
+    {
+        return $this->layoutData;
+    }
+
+    /**
      * Set dataType
      *
      * @param \ODR\AdminBundle\Entity\DataType $dataType
@@ -367,6 +406,7 @@ class Theme
     }
 
     /**
+     * @deprecated
      * Get isDefault
      *
      * @return boolean
@@ -374,5 +414,15 @@ class Theme
     public function getIsDefault()
     {
         return $this->getThemeMeta()->getIsDefault();
+    }
+
+    /**
+     * Get isOfficial
+     *
+     * @return boolean
+     */
+    public function getIsOfficial()
+    {
+        return $this->getThemeMeta()->getIsOfficial();
     }
 }

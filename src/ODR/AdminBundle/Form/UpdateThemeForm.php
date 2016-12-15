@@ -57,6 +57,16 @@ class UpdateThemeForm extends AbstractType
                 'required' => false
             )
         );
+/*
+        $builder->add(
+            'isOfficial',
+            CheckboxType::class,
+            array(
+                'label'  => 'Is Official?',
+                'required' => false
+            )
+        );
+*/
     }
 
 

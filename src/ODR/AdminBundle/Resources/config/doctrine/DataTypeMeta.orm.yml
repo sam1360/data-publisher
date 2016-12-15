@@ -44,6 +44,7 @@ ODR\AdminBundle\Entity\DataTypeMeta:
             nullable: false
             column: xml_short_name
 
+        # deprecated
         useShortResults:
             type: boolean
             nullable: false

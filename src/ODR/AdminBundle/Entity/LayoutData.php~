@@ -2,13 +2,13 @@
 
 /**
  * Open Data Repository Data Publisher
- * ThemeDataType Entity
+ * LayoutData Entity
  * (C) 2015 by Nathan Stone (nate.stone@opendatarepository.org)
  * (C) 2015 by Alex Pires (ajpires@email.arizona.edu)
  * Released under the GPLv2
  *
- * The ThemeDataType Entity is automatically generated from
- * ./Resources/config/doctrine/ThemeDataType.orm.yml
+ * The LayoutData Entity is automatically generated from
+ * ./Resources/config/doctrine/LayoutData.orm.yml
  *
  */
 
@@ -17,9 +17,9 @@ namespace ODR\AdminBundle\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * ThemeDataType
+ * LayoutData
  */
-class ThemeDataType
+class LayoutData
 {
     /**
      * @var integer
@@ -27,7 +27,6 @@ class ThemeDataType
     private $id;
 
     /**
-     * @deprecated
      * @var integer
      */
     private $display_type;
@@ -48,15 +47,20 @@ class ThemeDataType
     private $deletedAt;
 
     /**
-     * @var \ODR\AdminBundle\Entity\DataType
+     * @var \ODR\AdminBundle\Entity\Layout
      */
-    private $dataType;
+    private $layout;
 
     /**
-     * @var \ODR\AdminBundle\Entity\ThemeElement
+     * @var \ODR\AdminBundle\Entity\Theme
      */
-    private $themeElement;
+    private $theme;
 
+    /**
+     * @var \ODR\AdminBundle\Entity\DataTree
+     */
+    private $dataTree;
+    
     /**
      * @var \ODR\OpenRepository\UserBundle\Entity\User
      */
@@ -84,11 +88,10 @@ class ThemeDataType
     }
 
     /**
-     * @deprecated
      * Set display_type
      *
      * @param integer $displayType
-     * @return ThemeDataType
+     * @return LayoutData
      */
     public function setDisplayType($displayType)
     {
@@ -98,7 +101,6 @@ class ThemeDataType
     }
 
     /**
-     * @deprecated
      * Get display_type
      *
      * @return integer 
@@ -112,7 +114,7 @@ class ThemeDataType
      * Set created
      *
      * @param \DateTime $created
-     * @return ThemeDataType
+     * @return LayoutData
      */
     public function setCreated($created)
     {
@@ -135,7 +137,7 @@ class ThemeDataType
      * Set updated
      *
      * @param \DateTime $updated
-     * @return ThemeDataType
+     * @return LayoutData
      */
     public function setUpdated($updated)
     {
@@ -158,7 +160,7 @@ class ThemeDataType
      * Set deletedAt
      *
      * @param \DateTime $deletedAt
-     * @return ThemeDataType
+     * @return LayoutData
      */
     public function setDeletedAt($deletedAt)
     {
@@ -178,56 +180,80 @@ class ThemeDataType
     }
 
     /**
-     * Set dataType
+     * Set layout
      *
-     * @param \ODR\AdminBundle\Entity\DataType $dataType
-     * @return ThemeDataType
+     * @param \ODR\AdminBundle\Entity\Layout $layout
+     * @return LayoutData
      */
-    public function setDataType(\ODR\AdminBundle\Entity\DataType $dataType)
+    public function setLayout(\ODR\AdminBundle\Entity\Layout $layout)
     {
-        $this->dataType = $dataType;
+        $this->layout = $layout;
 
         return $this;
     }
 
     /**
-     * Get dataType
+     * Get layout
      *
-     * @return \ODR\AdminBundle\Entity\DataType 
+     * @return \ODR\AdminBundle\Entity\Layout
      */
-    public function getDataType()
+    public function getLayout()
     {
-        return $this->dataType;
+        return $this->layout;
     }
 
     /**
-     * Set themeElement
+     * Set theme
      *
-     * @param \ODR\AdminBundle\Entity\ThemeElement $themeElement
-     * @return ThemeDataType
+     * @param \ODR\AdminBundle\Entity\Theme $theme
+     * @return LayoutData
      */
-    public function setThemeElement(\ODR\AdminBundle\Entity\ThemeElement $themeElement = null)
+    public function setTheme(\ODR\AdminBundle\Entity\Theme $theme)
     {
-        $this->themeElement = $themeElement;
+        $this->theme = $theme;
 
         return $this;
     }
 
     /**
-     * Get themeElement
+     * Get theme
      *
-     * @return \ODR\AdminBundle\Entity\ThemeElement 
+     * @return \ODR\AdminBundle\Entity\Theme
      */
-    public function getThemeElement()
+    public function getTheme()
     {
-        return $this->themeElement;
+        return $this->theme;
+    }
+
+    /**
+     * Set dataTree
+     *
+     * @param \ODR\AdminBundle\Entity\DataTree $dataTree
+     *
+     * @return LayoutData
+     */
+    public function setDataTree(\ODR\AdminBundle\Entity\DataTree $dataTree = null)
+    {
+        $this->dataTree = $dataTree;
+
+        return $this;
+    }
+
+    /**
+     * Get dataTree
+     *
+     * @return \ODR\AdminBundle\Entity\DataTree
+     */
+    public function getDataTree()
+    {
+        return $this->dataTree;
     }
 
     /**
      * Set createdBy
      *
      * @param \ODR\OpenRepository\UserBundle\Entity\User $createdBy
-     * @return ThemeDataType
+     * @return LayoutData
      */
     public function setCreatedBy(\ODR\OpenRepository\UserBundle\Entity\User $createdBy = null)
     {
@@ -250,7 +276,7 @@ class ThemeDataType
      * Set updatedBy
      *
      * @param \ODR\OpenRepository\UserBundle\Entity\User $updatedBy
-     * @return ThemeDataType
+     * @return LayoutData
      */
     public function setUpdatedBy(\ODR\OpenRepository\UserBundle\Entity\User $updatedBy = null)
     {
@@ -273,7 +299,7 @@ class ThemeDataType
      * Set deletedBy
      *
      * @param \ODR\OpenRepository\UserBundle\Entity\User $deletedBy
-     * @return ThemeDataType
+     * @return LayoutData
      */
     public function setDeletedBy(\ODR\OpenRepository\UserBundle\Entity\User $deletedBy = null)
     {

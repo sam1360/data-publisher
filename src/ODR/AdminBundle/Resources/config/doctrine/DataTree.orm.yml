@@ -33,6 +33,16 @@ ODR\AdminBundle\Entity\DataTree:
                     referencedColumnName: id
             orphanRemoval: false
 
+        layoutData:
+            targetEntity: LayoutData
+            cascade: { }
+            mappedBy: dataTree
+            inversedBy: null
+            joinColumns:
+                layout_data_id:
+                    referencedColumnName: id
+            orphanRemoval: false
+
     manyToOne:
         ancestor:
             targetEntity: DataType

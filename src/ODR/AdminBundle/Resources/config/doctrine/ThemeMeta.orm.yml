@@ -24,10 +24,15 @@ ODR\AdminBundle\Entity\ThemeMeta:
             nullable: true
             column: template_description
 
+        # deprecated
         isDefault:
             type: boolean
             nullable: false
             column: is_default
+        isOfficial:
+            type: boolean
+            nullable: false
+            column: is_official
 
         created:
             type: datetime

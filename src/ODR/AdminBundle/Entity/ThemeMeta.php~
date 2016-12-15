@@ -38,9 +38,15 @@ class ThemeMeta
     private $templateDescription;
 
     /**
+     * @deprecated
      * @var boolean
      */
     private $isDefault;
+
+    /**
+     * @var boolean
+     */
+    private $isOfficial;
 
     /**
      * @var \DateTime
@@ -130,6 +136,7 @@ class ThemeMeta
     }
 
     /**
+     * @deprecated
      * Set isDefault
      *
      * @param boolean $isDefault
@@ -143,6 +150,7 @@ class ThemeMeta
     }
 
     /**
+     * @deprecated
      * Get isDefault
      *
      * @return boolean 
@@ -150,6 +158,29 @@ class ThemeMeta
     public function getIsDefault()
     {
         return $this->isDefault;
+    }
+
+    /**
+     * Set isOfficial
+     *
+     * @param boolean $isOfficial
+     * @return ThemeMeta
+     */
+    public function setIsOfficial($isOfficial)
+    {
+        $this->isOfficial = $isOfficial;
+
+        return $this;
+    }
+
+    /**
+     * Get isOfficial
+     *
+     * @return boolean
+     */
+    public function getIsOfficial()
+    {
+        return $this->isOfficial;
     }
 
     /**

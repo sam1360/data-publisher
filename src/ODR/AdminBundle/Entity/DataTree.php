@@ -42,6 +42,11 @@ class DataTree
     private $dataTreeMeta;
 
     /**
+     * @var \Doctrine\Common\Collections\Collection
+     */
+    private $layoutData;
+
+    /**
      * @var \ODR\AdminBundle\Entity\DataType
      */
     private $ancestor;
@@ -68,6 +73,7 @@ class DataTree
     public function __construct()
     {
         $this->dataTreeMeta = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->layoutData = new \Doctrine\Common\Collections\ArrayCollection();
     }
 
     /**
@@ -157,6 +163,39 @@ class DataTree
     public function getDataTreeMeta()
     {
         return $this->dataTreeMeta->first();
+    }
+
+    /**
+     * Add layoutData
+     *
+     * @param \ODR\AdminBundle\Entity\LayoutData $layoutData
+     * @return DataTree
+     */
+    public function addLayoutDatum(\ODR\AdminBundle\Entity\LayoutData $layoutData)
+    {
+        $this->layoutData[] = $layoutData;
+
+        return $this;
+    }
+
+    /**
+     * Remove layoutData
+     *
+     * @param \ODR\AdminBundle\Entity\LayoutData $layoutData
+     */
+    public function removeLayoutDatum(\ODR\AdminBundle\Entity\LayoutData $layoutData)
+    {
+        $this->layoutData->removeElement($layoutData);
+    }
+
+    /**
+     * Get layoutData
+     *
+     * @return \Doctrine\Common\Collections\Collection
+     */
+    public function getLayoutData()
+    {
+        return $this->layoutData;
     }
 
     /**

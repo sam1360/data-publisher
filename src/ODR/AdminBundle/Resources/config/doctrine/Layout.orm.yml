@@ -1,9 +1,10 @@
-ODR\AdminBundle\Entity\ThemeDataType:
+ODR\AdminBundle\Entity\Layout:
     type: entity
-    table: odr_theme_data_type
+    table: odr_layout
     gedmo:
         soft_deleteable:
             field_name: deletedAt
+
     fields:
         id:
             id: true
@@ -13,12 +14,10 @@ ODR\AdminBundle\Entity\ThemeDataType:
             generator:
                 strategy: IDENTITY
 
-        # deprecated
-        display_type:
-            type: integer
+        isTableLayout:
+            type: boolean
             nullable: false
-            default: 0
-            column: display_type
+            column: is_table_layout
 
         created:
             type: datetime
@@ -34,25 +33,45 @@ ODR\AdminBundle\Entity\ThemeDataType:
             type: datetime
             nullable: true
 
+    oneToMany:
+        layoutMeta:
+            targetEntity: LayoutMeta
+            cascade: { }
+            mappedBy: layout
+            inversedBy: null
+            joinColumns:
+                layout_meta_id:
+                    referencedColumnName: id
+            orphanRemoval: false
+
+        layoutData:
+            targetEntity: LayoutData
+            cascade: { }
+            mappedBy: layout
+            inversedBy: null
+            joinColumns:
+                layout_data_id:
+                    referencedColumnName: id
+            orphanRemoval: false
+
+        userLayoutPreferences:
+            targetEntity: UserLayoutPreferences
+            cascade: { }
+            mappedBy: layout
+            inversedBy: null
+            joinColumns:
+                user_layout_preferences_id:
+                    referencedColumnName: id
+            orphanRemoval: false
+
     manyToOne:
         dataType:
             targetEntity: DataType
             cascade: {  }
             mappedBy: null
-            inversedBy: themeDataType
+            inversedBy: layouts
             joinColumns:
                 data_type_id:
-                    nullable: false
-                    referencedColumnName: id
-            orphanRemoval: false
-
-        themeElement:
-            targetEntity: ThemeElement
-            cascade: {  }
-            mappedBy: null
-            inversedBy: themeDataType
-            joinColumns:
-                theme_element_id:
                     referencedColumnName: id
             orphanRemoval: false
 

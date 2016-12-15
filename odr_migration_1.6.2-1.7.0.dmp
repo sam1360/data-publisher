@@ -1,0 +1,1 @@
+UPDATE odr_theme_meta SET is_official = 1;

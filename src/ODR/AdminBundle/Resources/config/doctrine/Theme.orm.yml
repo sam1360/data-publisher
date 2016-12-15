@@ -55,6 +55,16 @@ ODR\AdminBundle\Entity\Theme:
                     referencedColumnName: id
             orphanRemoval: false
 
+        layoutData:
+            targetEntity: LayoutData
+            cascade: { }
+            mappedBy: theme
+            inversedBy: null
+            joinColumns:
+                layout_data_id:
+                    referencedColumnName: id
+            orphanRemoval: false
+
     manyToOne:
         dataType:
             targetEntity: DataType

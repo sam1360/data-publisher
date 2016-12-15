@@ -2,14 +2,14 @@
 
 /**
  * Open Data Repository Data Publisher
- * ThemeMeta Entity
+ * LayoutMeta Entity
  * (C) 2015 by Nathan Stone (nate.stone@opendatarepository.org)
  * (C) 2015 by Alex Pires (ajpires@email.arizona.edu)
  * Released under the GPLv2
  *
- * The ThemeMeta Entity is responsible for storing the properties
- * of the Theme Entity that are subject to change, and is
- * automatically generated from ./Resources/config/doctrine/ThemeMeta.orm.yml
+ * The LayoutMeta Entity is responsible for storing the properties
+ * of the Layout Entity that are subject to change, and is
+ * automatically generated from ./Resources/config/doctrine/LayoutMeta.orm.yml
  *
  */
 
@@ -18,9 +18,9 @@ namespace ODR\AdminBundle\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * ThemeMeta
+ * LayoutMeta
  */
-class ThemeMeta
+class LayoutMeta
 {
     /**
      * @var integer
@@ -30,23 +30,37 @@ class ThemeMeta
     /**
      * @var string
      */
-    private $templateName;
+    private $layoutName;
 
     /**
      * @var string
      */
-    private $templateDescription;
-
-    /**
-     * @deprecated
-     * @var boolean
-     */
-    private $isDefault;
+    private $layoutDescription;
 
     /**
      * @var boolean
      */
     private $isOfficial;
+
+    /**
+     * @var boolean
+     */
+    private $isSearchDefault;
+
+    /**
+     * @var boolean
+     */
+    private $isViewDefault;
+
+    /**
+     * @var boolean
+     */
+    private $isEditDefault;
+
+    /**
+     * @var \DateTime
+     */
+    private $publicDate;
 
     /**
      * @var \DateTime
@@ -64,9 +78,9 @@ class ThemeMeta
     private $deletedAt;
 
     /**
-     * @var \ODR\AdminBundle\Entity\Theme
+     * @var \ODR\AdminBundle\Entity\Layout
      */
-    private $theme;
+    private $layout;
 
     /**
      * @var \ODR\OpenRepository\UserBundle\Entity\User
@@ -90,81 +104,56 @@ class ThemeMeta
     }
 
     /**
-     * Set templateName
+     * Set layoutName
      *
-     * @param string $templateName
-     * @return ThemeMeta
+     * @param string $layoutName
+     * @return LayoutMeta
      */
-    public function setTemplateName($templateName)
+    public function setLayoutName($layoutName)
     {
-        $this->templateName = $templateName;
+        $this->layoutName = $layoutName;
 
         return $this;
     }
 
     /**
-     * Get templateName
+     * Get layoutName
      *
      * @return string 
      */
-    public function getTemplateName()
+    public function getLayoutName()
     {
-        return $this->templateName;
+        return $this->layoutName;
     }
 
     /**
-     * Set templateDescription
+     * Set layoutDescription
      *
-     * @param string $templateDescription
-     * @return ThemeMeta
+     * @param string $layoutDescription
+     * @return LayoutMeta
      */
-    public function setTemplateDescription($templateDescription)
+    public function setLayoutDescription($layoutDescription)
     {
-        $this->templateDescription = $templateDescription;
+        $this->layoutDescription = $layoutDescription;
 
         return $this;
     }
 
     /**
-     * Get templateDescription
+     * Get layoutDescription
      *
      * @return string 
      */
-    public function getTemplateDescription()
+    public function getLayoutDescription()
     {
-        return $this->templateDescription;
-    }
-
-    /**
-     * @deprecated
-     * Set isDefault
-     *
-     * @param boolean $isDefault
-     * @return ThemeMeta
-     */
-    public function setIsDefault($isDefault)
-    {
-        $this->isDefault = $isDefault;
-
-        return $this;
-    }
-
-    /**
-     * @deprecated
-     * Get isDefault
-     *
-     * @return boolean 
-     */
-    public function getIsDefault()
-    {
-        return $this->isDefault;
+        return $this->layoutDescription;
     }
 
     /**
      * Set isOfficial
      *
      * @param boolean $isOfficial
-     * @return ThemeMeta
+     * @return LayoutMeta
      */
     public function setIsOfficial($isOfficial)
     {
@@ -184,10 +173,102 @@ class ThemeMeta
     }
 
     /**
+     * Set isSearchDefault
+     *
+     * @param boolean $isSearchDefault
+     * @return LayoutMeta
+     */
+    public function setIsSearchDefault($isSearchDefault)
+    {
+        $this->isSearchDefault = $isSearchDefault;
+
+        return $this;
+    }
+
+    /**
+     * Get isSearchDefault
+     *
+     * @return boolean
+     */
+    public function getIsSearchDefault()
+    {
+        return $this->isSearchDefault;
+    }
+
+    /**
+     * Set isViewDefault
+     *
+     * @param boolean $isViewDefault
+     * @return LayoutMeta
+     */
+    public function setIsViewDefault($isViewDefault)
+    {
+        $this->isViewDefault = $isViewDefault;
+
+        return $this;
+    }
+
+    /**
+     * Get isViewDefault
+     *
+     * @return boolean
+     */
+    public function getIsViewDefault()
+    {
+        return $this->isViewDefault;
+    }
+
+    /**
+     * Set isEditDefault
+     *
+     * @param boolean $isEditDefault
+     * @return LayoutMeta
+     */
+    public function setIsEditDefault($isEditDefault)
+    {
+        $this->isEditDefault = $isEditDefault;
+
+        return $this;
+    }
+
+    /**
+     * Get isEditDefault
+     *
+     * @return boolean
+     */
+    public function getIsEditDefault()
+    {
+        return $this->isEditDefault;
+    }
+
+    /**
+     * Set publicDate
+     *
+     * @param \DateTime $publicDate
+     * @return LayoutMeta
+     */
+    public function setPublicDate($publicDate)
+    {
+        $this->publicDate = $publicDate;
+
+        return $this;
+    }
+
+    /**
+     * Get publicDate
+     *
+     * @return \DateTime
+     */
+    public function getPublicDate()
+    {
+        return $this->publicDate;
+    }
+
+    /**
      * Set created
      *
      * @param \DateTime $created
-     * @return ThemeMeta
+     * @return LayoutMeta
      */
     public function setCreated($created)
     {
@@ -210,7 +291,7 @@ class ThemeMeta
      * Set updated
      *
      * @param \DateTime $updated
-     * @return ThemeMeta
+     * @return LayoutMeta
      */
     public function setUpdated($updated)
     {
@@ -233,7 +314,7 @@ class ThemeMeta
      * Set deletedAt
      *
      * @param \DateTime $deletedAt
-     * @return ThemeMeta
+     * @return LayoutMeta
      */
     public function setDeletedAt($deletedAt)
     {
@@ -253,33 +334,33 @@ class ThemeMeta
     }
 
     /**
-     * Set theme
+     * Set layout
      *
-     * @param \ODR\AdminBundle\Entity\Theme $theme
-     * @return ThemeMeta
+     * @param \ODR\AdminBundle\Entity\Layout $layout
+     * @return LayoutMeta
      */
-    public function setTheme(\ODR\AdminBundle\Entity\Theme $theme = null)
+    public function setLayout(\ODR\AdminBundle\Entity\Layout $layout = null)
     {
-        $this->theme = $theme;
+        $this->layout = $layout;
 
         return $this;
     }
 
     /**
-     * Get theme
+     * Get layout
      *
-     * @return \ODR\AdminBundle\Entity\Theme 
+     * @return \ODR\AdminBundle\Entity\Layout 
      */
-    public function getTheme()
+    public function getLayout()
     {
-        return $this->theme;
+        return $this->layout;
     }
 
     /**
      * Set createdBy
      *
      * @param \ODR\OpenRepository\UserBundle\Entity\User $createdBy
-     * @return ThemeMeta
+     * @return LayoutMeta
      */
     public function setCreatedBy(\ODR\OpenRepository\UserBundle\Entity\User $createdBy = null)
     {
@@ -302,7 +383,7 @@ class ThemeMeta
      * Set updatedBy
      *
      * @param \ODR\OpenRepository\UserBundle\Entity\User $updatedBy
-     * @return ThemeMeta
+     * @return LayoutMeta
      */
     public function setUpdatedBy(\ODR\OpenRepository\UserBundle\Entity\User $updatedBy = null)
     {
