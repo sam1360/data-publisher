@@ -20,13 +20,17 @@ use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 // Entities
 use ODR\AdminBundle\Entity\DataFields;
 use ODR\AdminBundle\Entity\DataRecord;
-use ODR\AdminBundle\Entity\DataRecordFields;
+use ODR\AdminBundle\Entity\DataTree;
 use ODR\AdminBundle\Entity\DataType;
 use ODR\AdminBundle\Entity\FieldType;
 use ODR\AdminBundle\Entity\File;
 use ODR\AdminBundle\Entity\Image;
 use ODR\AdminBundle\Entity\ImageSizes;
+use ODR\AdminBundle\Entity\Layout;
+use ODR\AdminBundle\Entity\LayoutData;
+use ODR\AdminBundle\Entity\LayoutMeta;
 use ODR\AdminBundle\Entity\RadioSelection;
+use ODR\AdminBundle\Entity\Theme;
 use ODR\AdminBundle\Entity\TrackedJob;
 use ODR\OpenRepository\UserBundle\Entity\User;
 // Forms
@@ -1283,14 +1287,11 @@ $ret .= '  Set current to '.$count."\n";
 
 
     /**
-     * @deprecated
-     *
      * @param Request $request
      *
      * @return Response
-     * @throws \Exception
      */
-    public function startbuildgroupdataAction(Request $request)
+    public function startbuildlayoutdataAction(Request $request)
     {
         $return = array();
         $return['r'] = 0;
@@ -1310,7 +1311,7 @@ $ret .= '  Set current to '.$count."\n";
 
             $api_key = $this->container->getParameter('beanstalk_api_key');
 
-            throw new \Exception('DO NOT CONTINUE [DEPRECATED]');
+//            throw new \Exception('DO NOT CONTINUE');
 
             // --------------------
             // Determine user privileges
@@ -1324,7 +1325,7 @@ $ret .= '  Set current to '.$count."\n";
 
             // Generate the url for cURL to use
             $url = $this->container->getParameter('site_baseurl');
-            $url .= $router->generate('odr_group_metadata');
+            $url .= $router->generate('odr_layout_metadata');
 
 
             $top_level_datatypes = parent::getTopLevelDatatypes();
@@ -1357,13 +1358,11 @@ $ret .= '  Set current to '.$count."\n";
 
 
     /**
-     * @deprecated
-     *
      * @param Request $request
      *
      * @return Response
      */
-    public function buildgroupdataAction(Request $request)
+    public function buildlayoutdataAction(Request $request)
     {
         $return = array();
         $return['r'] = 0;
@@ -1375,7 +1374,7 @@ $ret .= '  Set current to '.$count."\n";
             if ( !isset($post['object_type']) || !isset($post['object_id']) || !isset($post['api_key']) )
                 throw new \Exception('Invalid Form');
 
-            throw new \Exception('DO NOT CONTINUE [DEPRECATED]');
+//            throw new \Exception('DO NOT CONTINUE');
 
             // Pull data from the post
             $object_type = $post['object_type'];
@@ -1387,100 +1386,289 @@ $ret .= '  Set current to '.$count."\n";
 
             /** @var \Doctrine\ORM\EntityManager $em */
             $em = $this->getDoctrine()->getManager();
+            $repo_datatree = $em->getRepository('ODRAdminBundle:DataTree');
+            $repo_theme = $em->getRepository('ODRAdminBundle:Theme');
+            $repo_theme_datatype = $em->getRepository('ODRAdminBundle:ThemeDataType');
+
 
             if ($api_key !== $beanstalk_api_key)
                 throw new \Exception('Invalid Form');
 
+            $write = false;
+//            $write = true;
 
             /** @var DataType $datatype */
             $datatype = $em->getRepository('ODRAdminBundle:DataType')->find($object_id);
 //            if ($datatype == null)
 //                throw new \Exception('Deleted Datatype');
 
-            // Determine whether this top-level datatype has the default groups already...
-            $repo_group = $em->getRepository('ODRAdminBundle:Group');
-            $repo_datatype_permissions = $em->getRepository('ODRAdminBundle:UserPermissions');
-            $repo_datafield_permissions = $em->getRepository('ODRAdminBundle:UserFieldPermissions');
 
-            $group_data = null;
-            $admin_group = $repo_group->findOneBy( array('dataType' => $datatype->getId(), 'purpose' => 'admin') );
-            if ($admin_group == false) {
-                $group_data = parent::ODR_createGroup($em, $datatype->getCreatedBy(), $datatype, 'admin');
-                $admin_group = $group_data['group'];
-            }
+$ret = 'Creating layouts for datatype '.$object_id.'...'."\n";
 
-            $group_data = null;
-            $edit_group = $repo_group->findOneBy( array('dataType' => $datatype->getId(), 'purpose' => 'edit_all') );
-            if ($edit_group == false) {
-                $group_data = parent::ODR_createGroup($em, $datatype->getCreatedBy(), $datatype, 'edit_all');
-                $edit_group = $group_data['group'];
-            }
+            /** @var Theme[] $themes */
+            $themes = $datatype->getThemes();
+            foreach ($themes as $theme) {
+                if ($theme->getThemeType() == "master") {
+$ret .= ' - created new "master" layout based off Theme '.$theme->getId()."\n";
+                    $layout = new Layout();
+                    $layout->setDataType($datatype);
+                    $layout->setIsTableLayout(false);
 
-            $group_data = null;
-            $view_all_group = $repo_group->findOneBy( array('dataType' => $datatype->getId(), 'purpose' => 'view_all') );
-            if ($view_all_group == false) {
-                $group_data = parent::ODR_createGroup($em, $datatype->getCreatedBy(), $datatype, 'view_all');
-                $view_all_group = $group_data['group'];
-            }
+                    $layout->setCreated( $theme->getCreated() );
+                    $layout->setCreatedBy( $theme->getCreatedBy() );
+                    $layout->setUpdated( $theme->getUpdated() );
+                    $layout->setUpdatedBy( $theme->getUpdatedBy() );
 
-            $group_data = null;
-            $view_only_group = $repo_group->findOneBy( array('dataType' => $datatype->getId(), 'purpose' => 'view_only') );
-            if ($view_only_group == false) {
-                $group_data = parent::ODR_createGroup($em, $datatype->getCreatedBy(), $datatype, 'view_only');
-                $view_only_group = $group_data['group'];
-            }
+                    if ($write) {
+                        $em->persist($layout);
+                        $em->flush();
+                        $em->refresh($layout);
+                    }
 
+                    $layout_meta = new LayoutMeta();
+                    $layout_meta->setLayoutName('');
+                    $layout_meta->setLayoutDescription('');
+                    $layout_meta->setPublicDate( $theme->getCreated() );
+                    $layout_meta->setIsOfficial(true);  // no user-generated themes yet, so consider all of these to be "official"
 
-            // Need to add users to these new groups...
-            $user_manager = $this->container->get('fos_user.user_manager');
-            /** @var User[] $user_list */
-            $user_list = $user_manager->findUsers();
+                    $layout_meta->setIsSearchDefault(false);
+                    $layout_meta->setIsSearchDefault(false);
 
-$ret = 'Created default groups for datatype '.$datatype->getId()."...\n";
+                    // Currently only one "master" theme, so have this layout become the default view/edit layout
+                    $layout_meta->setIsViewDefault(true);
+                    $layout_meta->setIsEditDefault(true);
 
-            $users_with_groups = array();
+                    $layout_meta->setLayout($layout);
 
-            // Locate all users without the super-admin role that have the current 'is_datatype_admin' permission...
-            foreach ($user_list as $user) {
-                if ( $user->isEnabled() && !$user->hasRole('ROLE_SUPER_ADMIN') ) {
-                    $datatype_permission = $repo_datatype_permissions->findOneBy( array('is_type_admin' => 1, 'user' => $user->getId(), 'dataType' => $datatype->getId()) );
-                    if ($datatype_permission != false) {
-                        // ...add this user to the new default admin group
-                        parent::ODR_createUserGroup($em, $user, $admin_group, $datatype->getCreatedBy());
-$ret .= ' -- added '.$user->getUserString().' to the default "admin" group'."\n";
+                    $layout_meta->setCreated( $theme->getCreated() );
+                    $layout_meta->setCreatedBy( $theme->getCreatedBy() );
+                    $layout_meta->setUpdated( $theme->getUpdated() );
+                    $layout_meta->setUpdatedBy( $theme->getUpdatedBy() );
 
-                        // Note that this user is in the admin group, and therefore don't add them to any other default group
-                        $users_with_groups[ $user->getId() ] = 1;
+                    if ($write) {
+                        $em->persist($layout_meta);
+                        $em->flush();
+                    }
+
+$ret .= '   > created default LayoutData entry'."\n";
+                    $layout_data = new LayoutData();
+                    $layout_data->setLayout($layout);
+                    $layout_data->setTheme($theme);
+                    $layout_data->setDataTree(null);
+
+                    $layout_data->setDisplayType(0);    // not going to be used, set to accordion
+
+                    $layout_data->setCreated( $theme->getCreated() );
+                    $layout_data->setCreatedBy( $theme->getCreatedBy() );
+                    $layout_data->setUpdated( $theme->getUpdated() );
+                    $layout_data->setUpdatedBy( $theme->getUpdatedBy() );
+
+                    if ($write) {
+                        $em->persist($layout_data);
+                        $em->flush();
+                    }
+
+                    // Now, need to create LayoutData entries for child/linked datatypes of this top-level datatype...
+                    /** @var DataTree[] $tmp */
+                    $tmp = $repo_datatree->findBy( array('ancestor' => $datatype->getId()) );
+
+                    $datatree_entries = array($datatype->getId() => array());
+                    foreach ($tmp as $dt)
+                        $datatree_entries[ $datatype->getId() ] [$dt->getId() ] = $dt;
+
+                    while ( count($datatree_entries) > 0 ) {
+                        $new_datatree_entries = array();
+                        foreach ($datatree_entries as $ancestor_datatype_id => $dt_list) {
+                            /** @var DataTree[] $dt_list */
+                            foreach ($dt_list as $dt_id => $dt) {
+                                // These properties are straight off the datatree entry...
+                                $is_link = $dt->getIsLink();
+                                $descendant_datatype_id = $dt->getDescendant()->getId();
+
+                                // Due to the current structure of the database, only need to look up the "master" theme for the descendant...doesn't matter whether it's a child or a linked datatype
+                                /** @var Theme $child_master_theme */
+                                $child_master_theme = $repo_theme->findOneBy(array('dataType' => $descendant_datatype_id, 'themeType' => 'master'));
+
+                                // Finally, need to locate the original theme_datatype entry to extract the accordion/tabbed/dropdown/list flag
+                                $query = $em->createQuery(
+                                   'SELECT tdt.display_type AS display_type
+                                    FROM ODRAdminBundle:ThemeDataType AS tdt
+                                    JOIN ODRAdminBundle:ThemeElement AS te WITH tdt.themeElement = te
+                                    JOIN ODRAdminBundle:Theme AS t WITH te.theme = t
+                                    WHERE tdt.dataType = :descendant_datatype AND t.dataType = :ancestor_datatype AND t.themeType = :theme_type
+                                    AND tdt.deletedAt IS NULL AND te.deletedAt IS NULL AND t.deletedAt IS NULL'
+                                )->setParameters(array('descendant_datatype' => $descendant_datatype_id, 'ancestor_datatype' => $ancestor_datatype_id, 'theme_type' => 'master'));
+                                $results = $query->getArrayResult();
+
+                                $child_display_type = $results[0]['display_type'];
+if (!$is_link)
+    $ret .= '   > created LayoutData entry for ancestor datatype '.$ancestor_datatype_id.' child datatype '.$descendant_datatype_id.' pointing to Theme '.$child_master_theme->getId().', display_type == '.$child_display_type."\n";
+else
+    $ret .= '   > created LayoutData entry for ancestor datatype '.$ancestor_datatype_id.' linked datatype '.$descendant_datatype_id.' pointing to Theme '.$child_master_theme->getId().', display_type == '.$child_display_type."\n";
+
+                                $layout_data = new LayoutData();
+                                $layout_data->setLayout($layout);
+                                $layout_data->setTheme($child_master_theme);
+                                $layout_data->setDataTree($dt);
+
+                                $layout_data->setDisplayType($child_display_type);
+
+                                $layout_data->setCreated( $theme->getCreated() );
+                                $layout_data->setCreatedBy( $theme->getCreatedBy() );
+                                $layout_data->setUpdated( $theme->getUpdated() );
+                                $layout_data->setUpdatedBy( $theme->getUpdatedBy() );
+
+                                if ($write) {
+                                    $em->persist($layout_data);
+                                    $em->flush();
+                                }
+
+                                // Also locate any children of this child datatype
+                                /** @var DataTree[] $grandchild_datatree_entries */
+                                $grandchild_datatree_entries = $repo_datatree->findBy( array('ancestor' => $descendant_datatype_id) );
+                                if ( count($grandchild_datatree_entries) > 0 ) {
+                                    if ( !isset($new_datatree_entries[$descendant_datatype_id]) )
+                                        $new_datatree_entries[$descendant_datatype_id] = array();
+
+                                    foreach ($grandchild_datatree_entries as $g_dt)
+                                        $new_datatree_entries[$descendant_datatype_id][ $g_dt->getId() ] = $g_dt;
+                                }
+                            }
+                        }
+
+                        $datatree_entries = $new_datatree_entries;
                     }
                 }
-            }
+                else if ($theme->getThemeType() == "search_results") {
+$ret .= ' - created new "derivative" layout for search purposes based off Theme '.$theme->getId();
+                    $layout = new Layout();
+                    $layout->setDataType($datatype);
+                    $layout->setIsTableLayout(false);
 
-            // Locate all users without the super-admin role that have the current 'can_edit_datarecord' permission...
-            foreach ($user_list as $user) {
-                if ( $user->isEnabled() && !$user->hasRole('ROLE_SUPER_ADMIN') && !isset($users_with_groups[$user->getId()]) ) {
-                    $datatype_permission = $repo_datatype_permissions->findOneBy( array('can_edit_record' => 1, 'user' => $user->getId(), 'dataType' => $datatype->getId()) );
-                    if ($datatype_permission != false) {
-                        // ...add this user to the new default edit_all group
-                        parent::ODR_createUserGroup($em, $user, $edit_group, $datatype->getCreatedBy());
-$ret .= ' -- added '.$user->getUserString().' to the default "edit_all" group'."\n";
+                    $layout->setCreated( $theme->getCreated() );
+                    $layout->setCreatedBy( $theme->getCreatedBy() );
+                    $layout->setUpdated( $theme->getUpdated() );
+                    $layout->setUpdatedBy( $theme->getUpdatedBy() );
 
-                        // Note that this user is in the edit_all group, and therefore don't add them to any other default group
-                        $users_with_groups[ $user->getId() ] = 1;
+                    if ($write) {
+                        $em->persist($layout);
+                        $em->flush();
+                        $em->refresh($layout);
+                    }
+
+                    $layout_meta = new LayoutMeta();
+                    $layout_meta->setLayoutName('');
+                    $layout_meta->setLayoutDescription('');
+                    $layout_meta->setPublicDate( $theme->getCreated() );
+                    $layout_meta->setIsOfficial(true);  // no user-generated themes yet, so consider all of these to be "official"
+
+                    // Only set this layout as search default if the datatype was originally set to use this specific search result theme as it's search result display
+                    if ($datatype->getUseShortResults() == true && $theme->getIsDefault() == true) {
+$ret .= ' (set as search default)';
+                        $layout_meta->setIsSearchDefault(true);
+                    }
+                    else {
+                        $layout_meta->setIsSearchDefault(false);
+                    }
+$ret .= "\n";
+
+                    $layout_meta->setIsViewDefault(false);
+                    $layout_meta->setIsEditDefault(false);
+
+                    $layout_meta->setLayout($layout);
+
+                    $layout_meta->setCreated( $theme->getCreated() );
+                    $layout_meta->setCreatedBy( $theme->getCreatedBy() );
+                    $layout_meta->setUpdated( $theme->getUpdated() );
+                    $layout_meta->setUpdatedBy( $theme->getUpdatedBy() );
+
+                    if ($write) {
+                        $em->persist($layout_meta);
+                        $em->flush();
+                    }
+
+$ret .=  '   > created default LayoutData entry'."\n";
+                    $layout_data = new LayoutData();
+                    $layout_data->setLayout($layout);
+                    $layout_data->setTheme($theme);
+                    $layout_data->setDataTree(null);
+
+                    $layout_data->setDisplayType(0);    // not going to be used, set to accordion
+
+                    $layout_data->setCreated( $theme->getCreated() );
+                    $layout_data->setCreatedBy( $theme->getCreatedBy() );
+                    $layout_data->setUpdated( $theme->getUpdated() );
+                    $layout_data->setUpdatedBy( $theme->getUpdatedBy() );
+
+                    if ($write) {
+                        $em->persist($layout_data);
+                        $em->flush();
                     }
                 }
-            }
+                else if ($theme->getThemeType() == "table") {
+$ret .= ' - created new "table" layout based off Theme '.$theme->getId();
+                    $layout = new Layout();
+                    $layout->setDataType($datatype);
+                    $layout->setIsTableLayout(true);
 
-            // Locate all users without the super-admin role that have the current 'can_view_datatype' permission...
-            foreach ($user_list as $user) {
-                if ( $user->isEnabled() && !$user->hasRole('ROLE_SUPER_ADMIN') && !isset($users_with_groups[$user->getId()]) ) {
-                    $datatype_permission = $repo_datatype_permissions->findOneBy( array('can_view_type' => 1, 'user' => $user->getId(), 'dataType' => $datatype->getId()) );
-                    if ($datatype_permission != false) {
-                        // ...add this user to the new default view_all group
-                        parent::ODR_createUserGroup($em, $user, $view_all_group, $datatype->getCreatedBy());
-$ret .= ' -- added '.$user->getUserString().' to the default "view_all" group'."\n";
+                    $layout->setCreated( $theme->getCreated() );
+                    $layout->setCreatedBy( $theme->getCreatedBy() );
+                    $layout->setUpdated( $theme->getUpdated() );
+                    $layout->setUpdatedBy( $theme->getUpdatedBy() );
 
-                        // Note that this user is in the view_all group, and therefore don't add them to any other default group
-                        $users_with_groups[ $user->getId() ] = 1;
+                    if ($write) {
+                        $em->persist($layout);
+                        $em->flush();
+                        $em->refresh($layout);
+                    }
+
+                    $layout_meta = new LayoutMeta();
+                    $layout_meta->setLayoutName('');
+                    $layout_meta->setLayoutDescription('');
+                    $layout_meta->setPublicDate( $theme->getCreated() );
+                    $layout_meta->setIsOfficial(true);  // no user-generated themes yet, so consider all of these to be "official"
+
+                    // Only set this layout as search default if the datatype was originally set to use this specific table theme as it's search result display
+                    if ($datatype->getUseShortResults() == false && $theme->getIsDefault() == true) {
+$ret .= ' (set as search default)';
+                        $layout_meta->setIsSearchDefault(true);
+                    }
+                    else {
+                        $layout_meta->setIsSearchDefault(false);
+                    }
+$ret .= "\n";
+
+                    $layout_meta->setIsViewDefault(false);
+                    $layout_meta->setIsEditDefault(false);
+
+                    $layout_meta->setLayout($layout);
+
+                    $layout_meta->setCreated( $theme->getCreated() );
+                    $layout_meta->setCreatedBy( $theme->getCreatedBy() );
+                    $layout_meta->setUpdated( $theme->getUpdated() );
+                    $layout_meta->setUpdatedBy( $theme->getUpdatedBy() );
+
+                    if ($write) {
+                        $em->persist($layout_meta);
+                        $em->flush();
+                    }
+
+$ret .= '   > created default LayoutData entry'."\n";
+                    $layout_data = new LayoutData();
+                    $layout_data->setLayout($layout);
+                    $layout_data->setTheme($theme);
+                    $layout_data->setDataTree(null);
+
+                    $layout_data->setDisplayType(0);    // not going to be used, set to accordion
+
+                    $layout_data->setCreated( $theme->getCreated() );
+                    $layout_data->setCreatedBy( $theme->getCreatedBy() );
+                    $layout_data->setUpdated( $theme->getUpdated() );
+                    $layout_data->setUpdatedBy( $theme->getUpdatedBy() );
+
+                    if ($write) {
+                        $em->persist($layout_data);
+                        $em->flush();
                     }
                 }
             }

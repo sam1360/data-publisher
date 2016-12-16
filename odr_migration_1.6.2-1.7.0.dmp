@@ -1,1 +1,2 @@
 UPDATE odr_theme_meta SET is_official = 1;
+UPDATE odr_theme SET theme_type = "derivative" WHERE theme_type = "search_results";

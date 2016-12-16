@@ -1226,11 +1226,11 @@ odr_permissions_clear:
 #-----------------------------------------
 
 #-----------------------------------------
-#build_group_data:
-#    path:  /admin/build_group_data
-#    defaults: { _controller:ODRAdminBundle:Worker:startbuildgroupdata }
+build_layout_data:
+    path:  /admin/build_layout_data
+    defaults: { _controller:ODRAdminBundle:Worker:startbuildlayoutdata }
 
-#odr_group_metadata:
-#    path:  /beanstalk/build_group_data
-#    defaults: { _controller:ODRAdminBundle:Worker:buildgroupdata }
-#    requirements: { methods: POST }
+odr_layout_metadata:
+    path:  /beanstalk/build_layout_data
+    defaults: { _controller:ODRAdminBundle:Worker:buildlayoutdata }
+    requirements: { methods: POST }

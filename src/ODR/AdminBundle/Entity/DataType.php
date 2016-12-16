@@ -620,6 +620,7 @@ class DataType
     }
 
     /**
+     * @deprecated
      * Get useShortResults
      *
      * @return boolean
