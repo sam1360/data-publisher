@@ -1,8 +1,10 @@
 {% spaceless %}
 
 {% set datatype = datatype_array[target_datatype_id] %}
-{% set theme = datatype.themes[theme_id] %}
 {% set datarecord = datarecord_array[target_datarecord_id] %}
+
+{% set theme_id = layout_array['layoutData']['self'] %}
+{% set theme = datatype.themes[theme_id] %}
 
 {% for theme_element in theme.themeElements %}
 

@@ -45,6 +45,7 @@ use ODR\AdminBundle\Entity\ImageChecksum;
 use ODR\AdminBundle\Entity\ImageMeta;
 use ODR\AdminBundle\Entity\ImageSizes;
 use ODR\AdminBundle\Entity\IntegerValue;
+use ODR\AdminBundle\Entity\Layout;
 use ODR\AdminBundle\Entity\LinkedDataTree;
 use ODR\AdminBundle\Entity\LongText;
 use ODR\AdminBundle\Entity\LongVarchar;
@@ -117,7 +118,8 @@ class ODRCustomController extends Controller
      *
      * @param array $datarecords  The unfiltered list of datarecord ids that need rendered...this should contain EVERYTHING
      * @param DataType $datatype  Which datatype the datarecords belong to
-     * @param Theme $theme        Which theme to use for rendering this datatype
+     * @param Layout $layout      Which layout to use for rendering this datatype
+     *
      * @param User $user          Which user is requesting this list
      * @param string $path_str
      *
@@ -129,7 +131,7 @@ class ODRCustomController extends Controller
      *
      * @return string
      */
-    public function renderList($datarecords, $datatype, $theme, $user, $path_str, $target, $search_key, $offset, Request $request)
+    public function renderList($datarecords, $datatype, $layout, $user, $path_str, $target, $search_key, $offset, Request $request)
     {
         // -----------------------------------
         // Grab necessary objects
@@ -202,7 +204,7 @@ class ODRCustomController extends Controller
 
         // -----------------------------------
         $final_html = '';
-        if ( $theme->getThemeType() == 'search_results' ) {
+        if ( $layout->getIsTableLayout() == false ) {
             // -----------------------------------
             // Ensure offset exists for shortresults list
             if ( (($offset-1) * $page_length) > count($datarecords) )
@@ -257,6 +259,13 @@ class ODRCustomController extends Controller
             // Delete everything that the user isn't allowed to see from the datatype/datarecord arrays
             self::filterByGroupPermissions($datatype_array, $datarecord_array, $user_permissions);
 
+            //
+            $layout_data = self::getRedisData(($redis->get($redis_prefix.'.cached_layout_'.$datatype->getId())));
+            if ($bypass_cache || $layout_data == false)
+                $layout_data = self::getLayoutData($em, $datatype->getId(), $bypass_cache);
+
+            $layout_data = $layout_data[$layout->getId()];
+
 
             // -----------------------------------
             // Finally, render the list
@@ -266,7 +275,7 @@ class ODRCustomController extends Controller
                 array(
                     'datatype_array' => $datatype_array,
                     'datarecord_array' => $datarecord_array,
-                    'theme_id' => $theme->getId(),
+                    'layout_array' => $layout_data,
 
                     'initial_datatype_id' => $datatype->getId(),
 
@@ -288,10 +297,10 @@ class ODRCustomController extends Controller
             );
 
         }
-        else if ( $theme->getThemeType() == 'table' ) {
+        else if ( $layout->getIsTableLayout() == true ) {
             // -----------------------------------
             // Grab the...
-            $column_data = self::getDatatablesColumnNames($em, $theme, $datafield_permissions);
+            $column_data = self::getDatatablesColumnNames($em, $layout, $datafield_permissions);
             $column_names = $column_data['column_names'];
             $num_columns = $column_data['num_columns'];
 /*
@@ -321,7 +330,7 @@ exit();
                     'scroll_target' => $scroll_target,
                     'user' => $user,
                     'user_permissions' => $datatype_permissions,
-                    'theme_id' => $theme->getId(),
+                    'layout_id' => $layout->getId(),
 
                     'logged_in' => $logged_in,
 
@@ -4866,12 +4875,12 @@ if ($debug)
      * Utility function to return the column definition for use by the datatables plugin
      *
      * @param \Doctrine\ORM\EntityManager $em
-     * @param Theme $theme                     The 'table' theme that stores the order of datafields for its datatype
+     * @param Layout $layout
      * @param array $datafield_permissions     The datafield permissions array of the user requesting this page
      *
      * @return array
      */
-    public function getDatatablesColumnNames($em, $theme, $datafield_permissions)
+    public function getDatatablesColumnNames($em, $layout, $datafield_permissions)
     {
         // First and second columns are always datarecord id and sort value, respectively
         $column_names  = '{"title":"datarecord_id","visible":false,"searchable":false},';
@@ -4881,14 +4890,16 @@ if ($debug)
         // Do a query to locate the names of all datafields that can be in the table
         $query = $em->createQuery(
            'SELECT df.id AS df_id, dfm.fieldName AS field_name, dfm.publicDate AS public_date
-            FROM ODRAdminBundle:ThemeElement AS te
+            FROM ODRAdminBundle:LayoutData AS ld
+            JOIN ODRAdminBundle:Theme AS t WITH ld.theme = t
+            JOIN ODRAdminBundle:ThemeElement AS te WITH te.theme = t
             JOIN ODRAdminBundle:ThemeDataField AS tdf WITH tdf.themeElement = te
             JOIN ODRAdminBundle:DataFields AS df WITH tdf.dataField = df
             JOIN ODRAdminBundle:DataFieldsMeta AS dfm WITH dfm.dataField = df
-            WHERE te.theme = :theme_id
-            AND te.deletedAt IS NULL AND tdf.deletedAt IS NULL AND df.deletedAt IS NULL AND dfm.deletedAt IS NULL
+            WHERE ld.layout = :layout_id
+            AND ld.deletedAt IS NULL AND t.deletedAt IS NULL AND te.deletedAt IS NULL AND tdf.deletedAt IS NULL AND df.deletedAt IS NULL AND dfm.deletedAt IS NULL
             ORDER BY tdf.displayOrder'
-        )->setParameters( array('theme_id' => $theme->getId()) );
+        )->setParameters( array('layout_id' => $layout->getId()) );
         $results = $query->getArrayResult();
 
         foreach ($results as $num => $data) {
@@ -6015,5 +6026,91 @@ if ($timing) {
         }
 
         return $current_datatype;
+    }
+
+
+    /**
+     *
+     * @param \Doctrine\ORM\EntityManager $em
+     * @param integer $datatype_id
+     * @param boolean $force_rebuild
+     *
+     * @return array
+     */
+    public function getLayoutData($em, $datatype_id, $force_rebuild = false)
+    {
+        // If layout data exists in memcached and user isn't demanding a fresh version, return that
+        $redis = $this->container->get('snc_redis.default');;
+        // $redis->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_PHP);
+        $redis_prefix = $this->container->getParameter('memcached_key_prefix');
+
+        if (!$force_rebuild) {
+            $cached_layout_data = self::getRedisData(($redis->get($redis_prefix.'.cached_layout_'.$datatype_id)));
+            if ( $cached_layout_data != false && count($cached_layout_data) > 0 )
+                return $cached_layout_data;
+        }
+
+        // Otherwise, load all the data relevant to layouts for this datatype...
+        $query = $em->createQuery(
+           'SELECT l, lm, ld, ld_t,
+              ld_dt, dtm, dt_ancestor, dt_descendant
+
+            FROM ODRAdminBundle:Layout AS l
+            JOIN l.layoutMeta AS lm
+            JOIN l.layoutData AS ld
+            JOIN ld.theme AS ld_t
+
+            LEFT JOIN ld.dataTree AS ld_dt
+            LEFT JOIN ld_dt.ancestor AS dt_ancestor
+            LEFT JOIN ld_dt.descendant AS dt_descendant
+            LEFT JOIN ld_dt.dataTreeMeta AS dtm
+
+            WHERE l.dataType = :datatype_id
+
+            AND l.deletedAt IS NULL AND lm.deletedAt IS NULL AND ld.deletedAt IS NULL AND ld_t.deletedAt IS NULL'
+        )->setParameters( array('datatype_id' => $datatype_id) );
+        $results = $query->getArrayResult();
+//print '<pre>'.print_r($results, true).'</pre>'; exit();
+
+        $cached_layout_data = array();
+        foreach ($results as $num => $layout) {
+            $layout_id = $layout['id'];
+
+            $layout['layoutMeta'] = $layout['layoutMeta'][0];
+            $cached_layout_data[$layout_id] = $layout;
+
+            $new_layout_data = array();
+            foreach ($layout['layoutData'] as $num => $layout_data) {
+
+                $theme_id = $layout_data['theme']['id'];
+
+                if ( count($layout_data['dataTree']) > 0 ) {
+                    // If the 'dataTree' key has contents, then this is a child/linked datatype
+                    $dt = $layout_data['dataTree'];
+
+                    $ancestor_id = $dt['ancestor']['id'];
+                    $descendant_id = $dt['descendant']['id'];
+
+                    // Store all needed rendering information
+                    $new_layout_data[$ancestor_id.'_'.$descendant_id] = array(
+                        'theme_id' => $theme_id,
+                        'display_type' => $layout_data['display_type'],
+                        'is_link' => $dt['dataTreeMeta'][0]['is_link'],
+                        'multiple_allowed' => $dt['dataTreeMeta'][0]['multiple_allowed'],
+                    );
+                }
+                else {
+                    // Otherwise, store the theme to use for the top-level datatype
+                    $new_layout_data['self'] = $theme_id;
+                }
+            }
+
+            $cached_layout_data[$layout_id]['layoutData'] = $new_layout_data;
+        }
+//print '<pre>'.print_r($cached_layout_data, true).'</pre>'; exit();
+
+        // Store the layout data in the cache and return
+//        $redis->set($redis_prefix.'.cached_layout_'.$datatype_id, gzcompress(serialize($cached_layout_data)));
+        return $cached_layout_data;
     }
 }

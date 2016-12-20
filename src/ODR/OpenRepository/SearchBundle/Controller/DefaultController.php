@@ -24,7 +24,7 @@ use ODR\AdminBundle\Controller\ODRCustomController;
 use ODR\AdminBundle\Entity\DataFields;
 use ODR\AdminBundle\Entity\DataType;
 use ODR\AdminBundle\Entity\DataTypeMeta;
-use ODR\AdminBundle\Entity\Theme;
+use ODR\AdminBundle\Entity\Layout;
 use ODR\OpenRepository\UserBundle\Entity\User;
 // Forms
 // Symfony
@@ -825,18 +825,19 @@ exit();
 
 
             // -----------------------------------
-            // TODO - better error handling, likely need more options as well...going to need a way to get which theme the user wants to use too
-            // Grab the desired theme to use for rendering search results
-            $theme_type = null;
-            if ($source == 'linking' || $datatype->getUseShortResults() == 0)
-                $theme_type = 'table';
-            else
-                $theme_type = 'search_results';
+            // TODO - ...going to need a way to get which theme the user wants to use too
+            // Grab the desired layout to use for rendering search results
+            $query = $em->createQuery(
+               'SELECT l.id AS layout_id
+                FROM ODRAdminBundle:Layout AS l
+                JOIN ODRAdminBundle:LayoutMeta AS lm WITH lm.layout = l
+                WHERE l.dataType = :datatype_id AND lm.isSearchDefault = 1
+                AND l.deletedAt IS NULL AND lm.deletedAt IS NULL'
+            )->setParameters( array('datatype_id' => $datatype_id) );
+            /** @var Layout $layout */
+            $result = $query->getArrayResult();
 
-            /** @var Theme $theme */
-            $theme = $em->getRepository('ODRAdminBundle:Theme')->findOneBy( array('dataType' => $datatype->getId(), 'themeType' => $theme_type) );
-            if ($theme == null)
-                throw new \Exception('The datatype "'.$datatype->getShortName().'" wants to use a "'.$theme_type.'" theme to render search results, but no such theme exists.');
+            $layout = $em->getRepository('ODRAdminBundle:Layout')->find( $result[0]['layout_id'] );
 
 
             // -----------------------------------
@@ -847,7 +848,7 @@ exit();
             $target = 'results';
             if ($source == 'linking')
                 $target = $source;
-            $html = $odrcc->renderList($datarecords, $datatype, $theme, $user, $path_str, $target, $encoded_search_key, $offset, $request);
+            $html = $odrcc->renderList($datarecords, $datatype, $layout, $user, $path_str, $target, $encoded_search_key, $offset, $request);
 
              $return['d'] = array(
                 'html' => $html,

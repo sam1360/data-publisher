@@ -17,12 +17,13 @@
 
 namespace ODR\AdminBundle\Controller;
 
-use ODR\OpenRepository\UserBundle\Entity\User;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 
 // Entities
 use ODR\AdminBundle\Entity\DataType;
+use ODR\AdminBundle\Entity\Layout;
 use ODR\AdminBundle\Entity\Theme;
+use ODR\OpenRepository\UserBundle\Entity\User;
 // Forms
 // Symfony
 use Symfony\Component\HttpFoundation\Request;
@@ -59,7 +60,7 @@ class TextResultsController extends ODRCustomController
                 $odr_tab_id = $post['odr_tab_id'];
 
             $datatype_id = intval( $post['datatype_id'] );
-            $theme_id = intval( $post['theme_id'] );
+            $layout_id = intval( $post['layout_id'] );
             $draw = intval( $post['draw'] );    // intval() because of recommendation by datatables documentation
             $start = intval( $post['start'] );
 
@@ -107,12 +108,19 @@ class TextResultsController extends ODRCustomController
             if ($datatype == null)
                 throw new \Exception('Datatype is deleted');
 
+            /** @var Layout $layout */
+            $layout = $em->getRepository('ODRAdminBundle:Layout')->find($layout_id);
+            if ($layout == null)
+                throw new \Exception('Deleted Layout');
+            if ($layout->getDataType()->getId() !== $datatype->getId() || $layout->getIsTableLayout() == false)
+                throw new \Exception('Invalid Layout');
+
             /** @var Theme $theme */
-            $theme = $em->getRepository('ODRAdminBundle:Theme')->find($theme_id);
-            if ($theme == null)
-                throw new \Exception('Theme is deleted');
+            $theme = $layout->getLayoutData()->first()->getTheme();
+            if ($theme->getDeletedAt() != null)
+                throw new \Exception('Deleted Theme');
             if ($theme->getDataType()->getId() !== $datatype->getId() || $theme->getThemeType() !== 'table')
-                throw new \Exception('Invalid request');
+                throw new \Exception('Invalid Theme');
 
             // Determine whether user is logged in or not
             /** @var User $user */

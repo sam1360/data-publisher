@@ -3,9 +3,13 @@
 <div class="ODRFormWrap ODRResults pure-u-1">
 
     {% if is_top_level == 1 %}
+        {% set theme_id = layout_array['layoutData']['self'] %}
+
         {% include "ODRAdminBundle:Display:display_childtype.html.twig" with {
             'datatype_array': datatype_array,
             'datarecord_array': datarecord_array,
+            'layout_array': layout_array,
+
             'theme_id': theme_id,
 
             'target_datatype_id': initial_datatype_id,
@@ -19,17 +23,22 @@
         {# render a child datarecord as if it's a top-level datarecord #}
         {% set datarecord = datarecord_array[initial_datarecord_id] %}
 
+        {% set key = parent_datatype_id ~ '_' ~ initial_datatype_id %}
+        {% set data = layout_array['layoutData'][key] %}
+
         {% include "ODRAdminBundle:Display:display_childtype.html.twig" with {
             'datatype_array': datatype_array,
             'datarecord_array': datarecord_array,
-            'theme_id': theme_id,
+            'layout_array': layout_array,
+
+            'theme_id': data['theme_id'],
 
             'target_datatype_id': initial_datatype_id,
             'parent_datarecord_id': datarecord.parent.id,
 
             'is_top_level': is_top_level,
-            'is_link': 0,
-            'display_type': 0
+            'is_link': data['is_link'],
+            'display_type': data['display_type'],
         } %}
     {% endif %}
 

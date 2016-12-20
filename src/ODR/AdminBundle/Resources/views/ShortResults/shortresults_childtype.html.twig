@@ -1,7 +1,7 @@
 {% spaceless %}
 
 {% set datatype = datatype_array[target_datatype_id] %}
-{% set theme = datatype.themes[theme_id] %}
+{#{% set theme = datatype.themes[theme_id] %}#}
 {% set datarecord = datarecord_array[target_datarecord_id] %}
 
 <div class="DataRecordShort DataRecord_{{ datarecord.id }} Pointer" id="DataType_{{ datatype.id }}" onclick="loadDataRecord({{ datarecord.id }});">
@@ -14,10 +14,10 @@
             {% include 'ODRAdminBundle:ShortResults:shortresults_fieldarea.html.twig' with {
                 'datatype_array': datatype_array,
                 'datarecord_array': datarecord_array,
+                'layout_array': layout_array,
 
                 'target_datatype_id': target_datatype_id,
                 'target_datarecord_id': datarecord.id,
-                'theme_id': theme_id,
             } %}
         </div><!-- End of #FieldArea_{{ datarecord.id }} -->
 

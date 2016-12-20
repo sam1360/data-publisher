@@ -53,29 +53,31 @@
             {% endfor %}
 
             {% if child_datatype_id != '' %}
-                {# locate the master theme id for this child datatype #}
-                {% set child_theme_id = '' %}
-                {% for t_id, t in child_datatype[ child_datatype_id ]['themes'] %}
-                    {% if t['themeType'] == 'master' %}
-                        {% set child_theme_id = t['id'] %}
-                    {% endif %}
-                {% endfor %}
+                {# locate the desired theme id for this child datatype #}
+                {% set key = datatype.id ~ '_' ~ child_datatype_id %}
+
+                {% set data = [] %}
+                {% if layout_array['layoutData'][key] is defined %}
+                    {% set data = layout_array['layoutData'][key] %}
+                {% endif %}
 
                 {# pass all child datarecords of this child datatype to display_childtype.html.twig at once #}
-                {% if datarecord['children'][ child_datatype_id ] is defined %}
+                {% if datarecord['children'][ child_datatype_id ] is defined and data|length > 0 %}
                     {% set datarecord_array = datarecord['children'][ child_datatype_id ] %}
 
                     {% include 'ODRAdminBundle:Display:display_childtype.html.twig' with {
                         'datatype_array': child_datatype,
                         'datarecord_array': datarecord_array,
-                        'theme_id': child_theme_id,
+                        'layout_array': layout_array,
+
+                        'theme_id': data['theme_id'],
 
                         'target_datatype_id': child_datatype_id,
                         'parent_datarecord_id': datarecord.id,
 
                         'is_top_level': 0,
-                        'is_link': theme_datatype.is_link,
-                        'display_type': theme_datatype.display_type
+                        'is_link': data['is_link'],
+                        'display_type': data['display_type'],
                     } %}
                 {% endif %}
 

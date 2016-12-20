@@ -298,6 +298,26 @@ class DisplayController extends ODRCustomController
 
 //print '<pre>'.print_r($datatype_array, true).'</pre>';  exit();
 
+
+            // ----------------------------------------
+            //
+            $grandparent_datatype_id = parent::getGrandparentDatatypeId($datatree_array, $datatype->getId());
+
+            $layout_data = parent::getRedisData(($redis->get($redis_prefix.'.cached_layout_'.$grandparent_datatype_id)));
+            if ($bypass_cache || $layout_data == false)
+                $layout_data = parent::getLayoutData($em, $grandparent_datatype_id, $bypass_cache);
+
+//print '<pre>'.print_r($layout_data, true).'</pre>';  exit();
+
+            // TODO - select which layout the user wants
+            foreach ($layout_data as $layout_id => $layout) {
+                if ($layout['layoutMeta']['isViewDefault'] == 1 ) {
+                    $layout_data = $layout;
+                    break;
+                }
+            }
+
+
             // ----------------------------------------
             // Delete everything that the user isn't allowed to see from the datatype/datarecord arrays
             parent::filterByGroupPermissions($datatype_array, $datarecord_array, $user_permissions);
@@ -320,8 +340,10 @@ class DisplayController extends ODRCustomController
                 array(
                     'datatype_array' => $stacked_datatype_array,
                     'datarecord_array' => $stacked_datarecord_array,
+                    'layout_array' => $layout_data,
 
-                    'theme_id' => $original_theme->getId(),    // using these on purpose...user could have requested a child datarecord initially
+                    // using these on purpose...user could have requested a child datarecord initially
+                    'parent_datatype_id' => $original_datarecord->getParent()->getDataType()->getId(),
                     'initial_datatype_id' => $original_datatype->getId(),
                     'initial_datarecord_id' => $original_datarecord->getId(),
 
