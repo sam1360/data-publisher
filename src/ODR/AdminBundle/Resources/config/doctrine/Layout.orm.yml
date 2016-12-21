@@ -14,6 +14,10 @@ ODR\AdminBundle\Entity\Layout:
             generator:
                 strategy: IDENTITY
 
+        isBaseLayout:
+            type: boolean
+            nullable: false
+            column: is_base_layout
         isTableLayout:
             type: boolean
             nullable: false

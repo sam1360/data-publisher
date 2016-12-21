@@ -29,6 +29,11 @@ class Layout
     /**
      * @var boolean
      */
+    private $isBaseLayout;
+
+    /**
+     * @var boolean
+     */
     private $isTableLayout;
 
     /**
@@ -99,6 +104,29 @@ class Layout
     public function getId()
     {
         return $this->id;
+    }
+
+    /**
+     * Set isBaseLayout
+     *
+     * @param boolean $isBaseLayout
+     * @return Layout
+     */
+    public function setIsBaseLayout($isBaseLayout)
+    {
+        $this->isBaseLayout = $isBaseLayout;
+
+        return $this;
+    }
+
+    /**
+     * Get isBaseLayout
+     *
+     * @return boolean
+     */
+    public function getIsBaseLayout()
+    {
+        return $this->isBaseLayout;
     }
 
     /**

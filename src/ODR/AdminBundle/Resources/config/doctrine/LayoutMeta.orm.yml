@@ -41,6 +41,11 @@ ODR\AdminBundle\Entity\LayoutMeta:
             nullable: false
             column: is_edit_default
 
+        hasSearchIntent:
+            type: boolean
+            nullable: false
+            column: has_search_intent
+
         publicDate:
             type: datetime
             nullable: false

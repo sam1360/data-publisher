@@ -1413,6 +1413,7 @@ $ret .= ' - created new "master" layout based off Theme '.$theme->getId()."\n";
                     $layout = new Layout();
                     $layout->setDataType($datatype);
                     $layout->setIsTableLayout(false);
+                    $layout->setIsBaseLayout(true);
 
                     $layout->setCreated( $theme->getCreated() );
                     $layout->setCreatedBy( $theme->getCreatedBy() );
@@ -1432,11 +1433,11 @@ $ret .= ' - created new "master" layout based off Theme '.$theme->getId()."\n";
                     $layout_meta->setIsOfficial(true);  // no user-generated themes yet, so consider all of these to be "official"
 
                     $layout_meta->setIsSearchDefault(false);
-                    $layout_meta->setIsSearchDefault(false);
-
                     // Currently only one "master" theme, so have this layout become the default view/edit layout
                     $layout_meta->setIsViewDefault(true);
                     $layout_meta->setIsEditDefault(true);
+
+                    $layout_meta->setHasSearchIntent(false);
 
                     $layout_meta->setLayout($layout);
 
@@ -1544,6 +1545,7 @@ $ret .= ' - created new "derivative" layout for search purposes based off Theme 
                     $layout = new Layout();
                     $layout->setDataType($datatype);
                     $layout->setIsTableLayout(false);
+                    $layout->setIsBaseLayout(false);
 
                     $layout->setCreated( $theme->getCreated() );
                     $layout->setCreatedBy( $theme->getCreatedBy() );
@@ -1574,6 +1576,8 @@ $ret .= "\n";
 
                     $layout_meta->setIsViewDefault(false);
                     $layout_meta->setIsEditDefault(false);
+
+                    $layout_meta->setHasSearchIntent(true);
 
                     $layout_meta->setLayout($layout);
 
@@ -1610,6 +1614,7 @@ $ret .= ' - created new "table" layout based off Theme '.$theme->getId();
                     $layout = new Layout();
                     $layout->setDataType($datatype);
                     $layout->setIsTableLayout(true);
+                    $layout->setIsBaseLayout(false);
 
                     $layout->setCreated( $theme->getCreated() );
                     $layout->setCreatedBy( $theme->getCreatedBy() );
@@ -1640,6 +1645,8 @@ $ret .= "\n";
 
                     $layout_meta->setIsViewDefault(false);
                     $layout_meta->setIsEditDefault(false);
+
+                    $layout_meta->setHasSearchIntent(true);
 
                     $layout_meta->setLayout($layout);
 

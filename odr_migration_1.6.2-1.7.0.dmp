@@ -1,2 +1,8 @@
+DROP TABLE IF EXISTS odr_user_permissions;
+DROP TABLE IF EXISTS odr_user_field_permissions;
+DROP TABLE IF EXISTS odr_theme_element_field;
+DROP TABLE IF EXISTS odr_file_storage;
+DROP TABLE IF EXISTS odr_image_storage;
+
 UPDATE odr_theme_meta SET is_official = 1;
 UPDATE odr_theme SET theme_type = "derivative" WHERE theme_type = "search_results";

@@ -58,6 +58,11 @@ class LayoutMeta
     private $isEditDefault;
 
     /**
+     * @var boolean
+     */
+    private $hasSearchIntent;
+
+    /**
      * @var \DateTime
      */
     private $publicDate;
@@ -239,6 +244,29 @@ class LayoutMeta
     public function getIsEditDefault()
     {
         return $this->isEditDefault;
+    }
+
+    /**
+     * Set hasSearchIntent
+     *
+     * @param boolean $hasSearchIntent
+     * @return LayoutMeta
+     */
+    public function setHasSearchIntent($hasSearchIntent)
+    {
+        $this->hasSearchIntent = $hasSearchIntent;
+
+        return $this;
+    }
+
+    /**
+     * Get hasSearchIntent
+     *
+     * @return boolean
+     */
+    public function getHasSearchIntent()
+    {
+        return $this->hasSearchIntent;
     }
 
     /**
